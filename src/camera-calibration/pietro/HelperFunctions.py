@@ -907,8 +907,9 @@ def find_match_avg(keypointsCam1: dict, keypointsCam2: dict,id_cam1,cam1: Camera
                 break
             intersection = (a+b) * 0.5
             
-            #Uncomment for Vieew space case 
-            #intersection = -1 * intersection
+            #Uncomment for Vieew space case, but it has tobe like this for coherence review 
+            #calculation for pos and rot of camra class 
+            intersection = -1 * intersection
             points3d.append(intersection)
 
             pixel_cam1 = ProjectPointsCV(intersection,cam1.K,cam1.rvec,cam1.tvec,cam1.dist_coeffs)

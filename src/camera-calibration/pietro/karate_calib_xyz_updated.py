@@ -8,7 +8,7 @@ import os
 import glob
 import json
 from pathlib import Path
-from karate_calib_data import xyz_coords, uv_coords
+from karate_calib_data_test_display import xyz_coords, uv_coords
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -16,15 +16,15 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
 
-def process_frame(frameIdx, img):
+def process_frame(frameIdx, img,input_corners=None,input_xyz=None):
     #img = cv2.imread(fname)
     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     # Find the chess board corners
     # If desired number of corners are found in the image then ret = true
     #ret, corners = cv2.findChessboardCorners(gray, CHECKERBOARD, cv2.CALIB_CB_ADAPTIVE_THRESH+cv2.CALIB_CB_FAST_CHECK+cv2.CALIB_CB_NORMALIZE_IMAGE)
-   # criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.0001) 
-    #ret, corners = cv2.findChessboardCorners(gray, CHECKERBOARD, cv2.CALIB_CB_ADAPTIVE_THRESH+cv2.CALIB_CB_ACCURACY +cv2.CALIB_CB_NORMALIZE_IMAGE)
-    ret, corners = cv2.findChessboardCorners(gray, CHECKERBOARD, cv2.CALIB_CB_FILTER_QUADS+cv2.CALIB_CB_NORMALIZE_IMAGE)
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 1000, 0.0001) 
+    ret, corners = cv2.findChessboardCorners(gray, CHECKERBOARD, cv2.CALIB_CB_ADAPTIVE_THRESH+cv2.CALIB_CB_ACCURACY +cv2.CALIB_CB_NORMALIZE_IMAGE)
+    #ret, corners = cv2.findChessboardCorners(gray, CHECKERBOARD, cv2.CALIB_CB_FILTER_QUADS+cv2.CALIB_CB_NORMALIZE_IMAGE)
 
     """
     If desired number of corner are detected,
@@ -34,8 +34,14 @@ def process_frame(frameIdx, img):
     if ret == True:
         print(f'{frameIdx} --> OK')
         objpoints.append(objp)
+        win_size = (11,11)
         # refining pixel coordinates for given 2d points.
-        corners2 = cv2.cornerSubPix(gray,corners,(11,11),(-1,-1),criteria)
+        if(input_corners is not None):
+            corners_bak = input_corners
+            win_size = (5,5)
+            corners = corners_bak
+            
+        corners2 = cv2.cornerSubPix(gray,corners,win_size,(-1,-1),criteria)
 
         imgpoints.append(corners2)
 
@@ -78,10 +84,18 @@ criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 1000, 0.0001)
 xyz_coords = np.array(xyz_coords)
 xyz_coords = xyz_coords.reshape(1,xyz_coords.shape[0],xyz_coords.shape[1])
 
-uv_coords = [np.array(uv) for uv in uv_coords]
+#uv_coords = [np.array(uv) for uv in uv_coords]
+uv_coords_tmp = []
+for uv in uv_coords:
+    if uv is not None:
+        uv_coords_tmp.append(np.array(uv,dtype=np.float32))
+    else:
+        uv_coords_tmp.append(None)
+uv_coords = uv_coords_tmp
+
 shape = uv_coords[0].shape
 # 28,1,2
-uv_coords = [uv.reshape(shape[0],1,shape[1]) for uv in uv_coords]
+uv_coords = [uv.reshape(shape[0],1,shape[1]) for uv in uv_coords if uv is not None]
 # define a video capture object
 path = "C:\\Projects\\Extra\\python\\FastAI\\Recon3D\\karate\\new_sync\\"
 video_files = [Path(p) for p in glob.glob(path+"**\\*.mp4", recursive=True)]
@@ -96,15 +110,15 @@ video_files = [Path(p) for p in glob.glob(path+"**\\*.mp4", recursive=True)]
 #video_file_path = Path("D:\\Datasets\\karate\\Synchronized\\20230714_193412\\K4A_Gianni.mp4")
 #video_file_path = Path("D:\\Datasets\\karate\\Synchronized\\20230714_193412\\S20.mp4")
 
-ctr = 5
+ctr = 0
 for video_file_path in video_files:
 
     print(f"Processing {video_file_path}")
 
     output_file = Path.joinpath(video_file_path.parent, f"calibration_{video_file_path.stem}.json")
-    #if output_file.exists():
-    #    print(f"Calibration already exists, skipping...")
-    #    continue
+   # if output_file.exists():
+    ##
+    #   continue
 
     # Creating vector to store vectors of 3D points for each checkerboard image
     objpoints = []
@@ -148,7 +162,12 @@ for video_file_path in video_files:
             continue
 
         frame_step = FRAME_STEP
-        frame, is_valid = process_frame(frame_count, frame)
+        input_corners = None
+        if ctr < len(uv_coords):
+            if(uv_coords[ctr] is None):
+                continue
+            input_corners = uv_coords[ctr]      
+        frame, is_valid = process_frame(frame_count, frame,input_corners=input_corners)
         frame_size = frame.shape[:2]
         if is_valid:
             valid_frames += 1
@@ -181,15 +200,15 @@ for video_file_path in video_files:
         continue
         #exit()
     if ctr < len(uv_coords):
-        # (1,28,3)
-        
+        if uv_coords[ctr] is None:
+            continue
         objpoints_back = []
         num_frames = len(objpoints)
-        assert num_frames == len(imgpoints)
+    # assert num_frames == len(imgpoints)
         objpoints_back = [np.array(xyz_coords,dtype=np.float32) for i in range(num_frames)]
-        img_points = [np.array(uv_coords[ctr],dtype=np.float32) for i in range(num_frames)]                  
+        # img_points = [np.array(uv_coords[ctr],dtype=np.float32) for i in range(num_frames)]                  
         objpoints = objpoints_back
-        imgpoints = img_points
+       # imgpoints = img_points
     print(f"Calibrating camera (using {valid_frames} frames), please wait...")
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, frame_size,None, criteria)
 
@@ -221,7 +240,7 @@ for video_file_path in video_files:
         json.dump(camera, f, indent=4, cls=NumpyEncoder)
 
     # See: https://ksimek.github.io/2012/08/22/extrinsic/
-
+    # 
     # print("Camera matrix : \n")
     # print(mtx)
     # print("dist : \n")

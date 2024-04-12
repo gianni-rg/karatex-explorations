@@ -26,7 +26,7 @@ random.seed(seed)
 folder = "./karate"
 folder_anno = "pose"
 folder_calib = "sync"
-cameras_params = parse_ini_file(ini_file)
+
 imgs_clean = {}
 keypoints = {}
 bboxes = {}

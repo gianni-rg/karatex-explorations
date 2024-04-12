@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-#from CameraParamParser import * 
+from CameraParamParser import * 
 from GeometryUtility import *
 import random
 import matplotlib.pyplot as plt

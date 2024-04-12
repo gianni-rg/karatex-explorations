@@ -237,18 +237,22 @@ class GeometryUtilities():
         # finding ray going from camera center to pixel coord
         hom_pt = np.array([pixel[0],pixel[1],1],dtype='double')
         #hom_pt = np.array([721,391,1],dtype='double')
-        dir_cam_space = k_inv @ hom_pt  # this bit transform points in camera space 
 
         # https://answers.opencv.org/question/148670/re-distorting-a-set-of-points-after-camera-calibration/ # <- this
         # TODO: apply distortion coefficients
         
-        #if(cam.dist_coeffs is not None ) and (np.sum(cam.dist_coeffs) != 0):
-        #    #print("APPLYING DIST Coefficients")
-        #    x,y = GeometryUtilities.distort_point(dir_cam_space[0],dir_cam_space[1],cam,hom_pt)
-        #    #print(f"{x} {y} {dir_cam_space}")
-        #    dir_cam_space[0] = x
-        #    dir_cam_space[1] = y
+        if(cam.dist_coeffs is not None ) and (np.sum(cam.dist_coeffs) != 0) and False:
+            #print("APPLYING DIST Coefficients")
+            undistorted_pixel_coords = cv2.undistortPoints(pixel,cam.K,cam.dist_coeffs)
+            undistorted_pixel_coords =undistorted_pixel_coords.reshape(2,)
+            hom_pt = np.array([undistorted_pixel_coords[0],undistorted_pixel_coords[1],1],dtype='double')
         
+            #GeometryUtilities.distort_point(dir_cam_space[0],dir_cam_space[1],cam,hom_pt)
+            #print(f"{x} {y} {dir_cam_space}")
+            #dir_cam_space[0] = x
+            #dir_cam_space[1] = y
+        
+        dir_cam_space = k_inv @ hom_pt  # this bit transform points in camera space 
         dir_in_world  = rot_inv @ dir_cam_space #+ bb
         return dir_in_world
   
@@ -380,7 +384,7 @@ class GeometryUtilities():
 
 
     ## Possible fix: https://math.stackexchange.com/questions/2738535/intersection-between-two-lines-3d
-    def RayRayIntersectionExDualUpdated(origin_ray1,dir_ray1,origin_ray2,dir_ray2,eps=1e-3):
+    def RayRayIntersectionExDualUpdated(origin_ray1,dir_ray1,origin_ray2,dir_ray2,eps=1e-4):
         #Vector3 line2Point1, Vector3 line2Point2, out Vector3 resultSegmentPoint1, out Vector3 resultSegmentPoint2)
         #Algorithm is ported from the C algorithm of 
         #Paul Bourke at http://local.wasp.uwa.edu.au/~pbourke/geometry/lineline3d/
@@ -396,11 +400,11 @@ class GeometryUtilities():
         p43 = p4 - p3
  
         if ( np.linalg.norm( p43) < eps):
-            return None,None
+            return None,None,None
    
         p21 = p2 - p1;
         if ( np.linalg.norm( p21) < eps):
-            return None,None
+            return None,None,None
    
         d1343 = p13[0] * p43[0] + p13[1] * p43[1] + p13[2] * p43[2]
         d4321 = p43[0] * p21[0] + p43[1] * p21[1] + p43[2] * p21[2]
@@ -410,7 +414,7 @@ class GeometryUtilities():
  
         denom = d2121 * d4343 - d4321 * d4321
         if (np.abs(denom) < eps):
-            return None,None
+            return None,None,None
    
         numer = d1343 * d4321 - d1321 * d4343;
  
