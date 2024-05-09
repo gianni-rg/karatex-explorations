@@ -7,7 +7,7 @@ import json
 from Karate_utilities import Camera,get_random_color
 import glob
 import os
-
+import copy
 
 from karate_export_frames import load_json
 
@@ -108,15 +108,23 @@ if __name__ == "__main__":
                 if ret:
                     poses_2d  = load_json(multiview_frames[key][i])
                     # display 2d poses 
-                    #display_2d_pose(img,poses_2d,size=3,color=(0,0,255))
+                    img_poses2d = copy.deepcopy(img)
+                    display_2d_pose(img_poses2d,poses_2d,size=3,color=(0,0,255))
                     
                     # display 3d poses 
+                    img_poses3d = copy.deepcopy(img)
                     poses_3d = load_json(poses_frames[i])
-                    #display_recon_pose(img,camera,poses_3d,size=3,color=(255,0,0))
+                    display_recon_pose(img_poses3d,camera,poses_3d,size=3,color=(255,0,0))
                     
+                    img_debug_poses = copy.deepcopy(img)
                     debug_poses = load_json(debug_poses_frames[i])
-                    display_debug_poses(img,camera,debug_poses,threshold=350,size=3,colors=colors)
-                    cv2.imshow(f'Preview',  cv2.resize(img, (1280, 720)))
+                    display_debug_poses(img_debug_poses,camera,debug_poses,threshold=350,size=3,colors=colors)
+                    
+                    img_horizontal = np.hstack((img, img_poses2d))
+                    img_horizontal1 = np.hstack((img_poses3d, img_debug_poses))
+                    
+                    img_tot = np.vstack((img_horizontal,img_horizontal1))
+                    cv2.imshow(f'Preview',  cv2.resize(img_tot, (1280, 720)))
                     cv2.waitKey(1)
                     cap.release()  # Close the video capture object
                 else: 
