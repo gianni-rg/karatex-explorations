@@ -180,6 +180,62 @@ def find_unique_id(poses_dic: dict, output_folder:str,frame_to_format:str,mse_th
     matches = {}
     char = 'A'
 
+    # iterate thoruh all the poses and delete those below a certain threshold
+    #for camera_pair_key in poses_dic:
+     #   for pose_pair_key in poses_dic[camera_pair_key]:
+      #      print("TODO")
+
+    #clean up matches: remove those for mse is greater than the threshold 
+    
+
+    for camera_pair_key in poses_dic:
+       if(verbose):
+            print(f'Starting with cameras {camera_pair_key} \n')
+            pairs = poses_dic[camera_pair_key]['pairs']
+            mse_res = poses_dic[camera_pair_key]['mse']
+            print(f'{pairs}')
+            print(f'{mse_res}')
+       # find matches across the selected cameras
+       camera1_id = camera_pair_key[0] 
+       camera2_id = camera_pair_key[1] 
+       if(camera1_id not in  matches):
+            matches[camera1_id] = {}
+       if(camera2_id not in  matches):
+            matches[camera2_id] = {}
+       # iterate through all the poses in the first camera and poses in the second camera
+       for i in range(len(poses_dic[camera_pair_key]['pairs'])):
+         pose1_id = poses_dic[camera_pair_key]['pairs'][i][0]
+         pose2_id = poses_dic[camera_pair_key]['pairs'][i][1]
+
+         if(poses_dic[camera_pair_key]['mse'][i] >0 and poses_dic[camera_pair_key]['mse'][i] <=  mse_threshold):
+            if( pose1_id not in matches[camera1_id] and  pose2_id not in matches[camera2_id]):
+                 matches[camera1_id][pose1_id] = char
+                 matches[camera2_id][pose2_id] = char
+                 char = chr(ord(char) +1)
+            elif( pose1_id not in matches[camera1_id] and pose2_id in matches[camera2_id]):
+                 matches[camera1_id][pose1_id] = matches[camera2_id][pose2_id]
+            elif(pose1_id in matches[camera1_id] and pose2_id not in matches[camera2_id]):
+                 matches[camera2_id][pose2_id] = matches[camera1_id][pose1_id]
+            if(verbose):
+                 print(f"{poses_dic[camera_pair_key]['pairs'][i]} {poses_dic[camera_pair_key]['mse'][i]}")
+         
+       if verbose:
+           print(matches)
+    if verbose:
+        print(matches)
+    matches_full = output_folder + f"/debug/matches_{frame_to_format}.json"
+    
+    # save to disk 
+    if(ifiles == True):
+        serialize_to_json(matches_full,matches)
+
+    return matches
+
+
+def find_unique_id_mse(poses_dic: dict, output_folder:str,frame_to_format:str,mse_threshold=50.0,verbose=False,ifiles=False):
+    matches = {}
+    char = 'A'
+
     #clean up matches: remove those for mse is greater than the threshold 
 
     for key in poses_dic:
@@ -252,7 +308,7 @@ def average_poses(poses_dic, matches_dic,threshold=50.0,verbose=True):
             #if poses_dic[key_cam][key_pair]: # check if threshold 
             id_camera = key_cam[0]
             # NOTE le bounding box sono invertite 
-            id_box    = poses_dic[key_cam]['pairs'][i][1]    
+            id_box    = poses_dic[key_cam]['pairs'][i][0]    
             id = "NOT_VALID"
             if(id_camera in matches_dic):
                 id =  matches_dic[id_camera][id_box]
