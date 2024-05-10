@@ -1,19 +1,14 @@
 import numpy as np
 import json
 import glob
-import os 
+import os
 import click
 import multiprocessing
 
 from concurrent.futures import ThreadPoolExecutor, wait
 
 from Karate_utilities import Camera,ProjectPointsCV,GetPointCameraRayFromPixel,RayRayIntersectionExDualUpdated
-from karate_load_data_exporter import load_json
-
-
-
-
-
+from Karate_utilities import load_json
 
 def serialize_to_json(fullpath, serializable_obj):
     with open(fullpath,'w') as f:
@@ -22,15 +17,15 @@ def serialize_to_json(fullpath, serializable_obj):
 def deserialize_from_json(fullpath):
     obj = None
     with open(fullpath,'r') as f:
-       obj = json.load(f) 
-    
+       obj = json.load(f)
+
     return obj
 
 def poses_to_serializable(poses: dict):
    out_list = []
    for key in poses:
        out_list.extend(poses[key].reshape(-1).tolist())
-   
+
    return out_list
 
 def results_to_serializable_format(result_dic):
@@ -70,18 +65,18 @@ nconverter = lambda x: f"{x:06d}"
 def get_3d_poses_debug(cameras, keypoints,bboxes,invalid_poses_dic,verbose=False):
     results_camera = {}
     valid_keys = list(cameras.keys())
-    
+
     # iterate through camera pairs
     for i in range(len(valid_keys)):
-       for j in range(i+1,len(valid_keys)):      
+       for j in range(i+1,len(valid_keys)):
            cam1_id = valid_keys[i]
            cam2_id = valid_keys[j]
            print(f'Computing reconstruction for camera {valid_keys[i]} and camera {valid_keys[j]}')
            key_camera_pair = (valid_keys[i],valid_keys[j])
-           
+
            # iterate through all the poses in the first camera and poses in the second camera
            #res = find_matches_dual_camera_medium(cameras,keypoints,valid_keys[i],valid_keys[j],bboxes,bad_keypoints)
-           
+
            # just for testing purpose
            #tmp = cam1_id
            #cam1_id = cam2_id
@@ -124,16 +119,17 @@ def get_3d_poses_debug(cameras, keypoints,bboxes,invalid_poses_dic,verbose=False
                        dir_2 = GetPointCameraRayFromPixel(orig_pixel_c2,cam2.K_inv,cam2.R_inv,cam2.tvec,cam2.dist_coeffs,cam2)
                        a,b,sin = RayRayIntersectionExDualUpdated(cam1.pos,dir_1,cam2.pos,dir_2,eps=1e-4)
                        # a,b,sin =  GeometryUtilities.RayRayIntersectionExDualVieww(cam1.pos,dir_1,cam2.pos,dir_2,eps=1e-4)
-                       
+
                        # check if no intersection or contraints violated (TODO: add contrain check)
                        if(a is None or b is None):
                             print("BAD POINT No Intersection")
                             count += 1
                             bSkip = True
                             break
-                       
+
                        intersection = (a+b) * 0.5
-                       intersection = -1 * intersection # still in Vieww space
+                       # Negate to get in Vieww space reference (if camera was generated for Vieww space)
+                       #intersection = -1 * intersection 
                        points3d.append(intersection)
                        pixel_c1 = ProjectPointsCV(intersection,cam1.K,cam1.rvec,cam1.tvec,cam1.dist_coeffs)
                        pixel_c2 = ProjectPointsCV(intersection,cam2.K,cam2.rvec,cam2.tvec,cam2.dist_coeffs)
@@ -142,30 +138,30 @@ def get_3d_poses_debug(cameras, keypoints,bboxes,invalid_poses_dic,verbose=False
                        error_abs_c2 = np.abs(pixel_c2 - orig_pixel_c2)
                        error_sqr_c1 = np.linalg.norm((pixel_c1 - orig_pixel_c1))
                        error_sqr_c2 = np.linalg.norm((pixel_c2 - orig_pixel_c2))
-                       
+
                        # this should be the average 1st error 
                        err_sqr = (error_sqr_c1 + error_sqr_c2)/2.0
                        err_abs = (error_abs_c1 + error_abs_c2)/2.0
-               
+
                        # total error for the two poses
                        mse += err_sqr #error_sqr
-                       verbose = False
+
                        if(verbose):
                             print(f"Joint_{k+1} -> 3D: {intersection}: original pixels c_{cam1_id} {orig_pixel_c1}"+ 
                                   f"c{cam2_id}: {orig_pixel_c2} \n"+
                                   f"reproj: {pixel_c1} {pixel_c2} error: {err_sqr}, err_abs {err_abs}, tot error: {mse}")
-                   
-                   if(True):    
+
+                   if(True):
                        print(f"Comparing pose with id: {id_pose_c1} from camera {cam1_id} with pose with id: {id_pose_c2} from camera {cam2_id}: error: {mse}") # id_cam1 is the left camera 4-5 is camera 5
-                   
-                   if( mse < min_mse and bSkip == False):
+
+                   if(mse < min_mse and bSkip == False):
                         best_id = id_pose_c2
                         min_mse = mse
                         best_3dpoints = points3d
                             
                        #dx,key3d,mse = find_match_avg(poses_cam1,poses_cam2,id_pose_c1,cam1,cam2,invalid_poses_c2,verbose)
                     
-                # store the best match for the pose nth from camera 1 found among all poses in camera 2  
+               # store the best match for the pose nth from camera 1 found among all poses in camera 2  
                #results_camera[key_camera_pair]= [(id_pose_c1,best_id)] = (best_id,best_3dpoints,mse)
                results_camera[key_camera_pair]['pairs'].append((id_pose_c1,best_id))
                results_camera[key_camera_pair]['mse'].append(min_mse)
@@ -368,9 +364,9 @@ def export_frame_from_dic(cameras :dict,frames: dict,frame_nbr:int,skip_cameras:
 
 
 @click.command()
-@click.option('--input_path', type=click.STRING, required=True, default="C:\\Projects\\Extra\\python\\FastAI\\Recon3D\\karate", help='annotations root folder')
+@click.option('--input_path', type=click.STRING, required=True, default="D:\\Datasets\\karate\\Test", help='annotations root folder')
 @click.option('--calibration_file', type=click.STRING, required=True, default="camera_data/camera.json", help='JSON calibration file')
-@click.option('--clip_name', type=click.STRING, required=True, default="20230714_193412", help='name of the clip to export in 3D')
+@click.option('--clip_name', type=click.STRING, required=True, default="20230714_200355", help='name of the clip to export in 3D')
 @click.option('--output_folder', type=click.STRING, required=True, default="output_3d_150", help='relative path folder for the output')
 @click.option('--threshold', type=click.FLOAT, required=True, default=150, help='maximum error threshold')
 @click.option('--start_frame_nbr', type=click.INT, required=True, default=0, help='frame to start from')
@@ -378,12 +374,12 @@ def export_frame_from_dic(cameras :dict,frames: dict,frame_nbr:int,skip_cameras:
 @click.option('--ifiles', type=click.BOOL,required=False, default=True, help='Output intermediate files for debug purpose')
 @click.option('--nformat', type=click.STRING, required=True, default="06d", help='numerical format of the annotation (i.e: 00001.json)')
 def main(input_path,calibration_file,clip_name,start_frame_nbr,end_frame_nbr,ifiles,nformat,threshold,output_folder):
-    
+
     camera_calib = os.path.join(input_path,clip_name,calibration_file)
-    
+
     with open(camera_calib,'r') as f:
         cameras_json = json.load(f)
-    
+
     cameras = {}
     i = 1
     cameras_xi_names = {}
@@ -447,4 +443,3 @@ def main(input_path,calibration_file,clip_name,start_frame_nbr,end_frame_nbr,ifi
 
 if __name__ == "__main__":
     main()
-    

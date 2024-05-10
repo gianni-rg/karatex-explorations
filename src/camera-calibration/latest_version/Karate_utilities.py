@@ -3,10 +3,15 @@ import cv2
 import matplotlib.pyplot as plt
 import json
 import random
-from GeometryUtility import *
 from typing import Optional
 
 random.seed(1234)
+
+def load_json(filepath):
+    json_file = {}
+    with open(filepath,'r') as f:
+        json_file = json.load(f)
+    return json_file
 
 def get_random_color():
     r = random.randint(0, 255)

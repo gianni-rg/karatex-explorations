@@ -1,15 +1,8 @@
-import numpy as np
 import json
 import glob
 import os
 import click
-
-def load_json(filepath):
-    json_file = {}
-    with open(filepath,'r') as f:
-        json_file = json.load(f)
-    return json_file
-
+from Karate_utilities import load_json
 
 def process_annotation(anno: dict) -> (dict,dict):
     keypoints = {}
@@ -24,17 +17,16 @@ def process_annotation(anno: dict) -> (dict,dict):
         frame_data = []
         for j in range(num_persons_framse):
             person = {"bbox":keypoints[i]['instances'][j]['bbox']}
-            person['keypoints'] = keypoints[i]['instances'][j]['keypoints'][0:23] # modify to adpapt to the number of keypoints
-            frame_data.append(person)    
-        
-        #frames[frame_id].append(frame_data)
+            person['keypoints'] = keypoints[i]['instances'][j]['keypoints'][0:23] # TODO: modify to adapt to the number of keypoints
+            frame_data.append(person)
+
         frames[frame_id] = frame_data
-        
+
     return frames
 
 @click.command()
-@click.option('--input_path', type=click.STRING, required=True, default="C:\\Projects\\Extra\\python\\FastAI\\Recon3D\\karate", help='annotations root folder')
-@click.option('--clip_name', type=click.STRING, required=True, default="20230714_193412", help='name of the clip to export in 3D')
+@click.option('--input_path', type=click.STRING, required=True, default="D:\\Datasets\\karate\\Test", help='annotations root folder')
+@click.option('--clip_name', type=click.STRING, required=True, default="20230714_200355", help='name of the clip to export in 3D')
 @click.option('--output_folder', type=click.STRING, required=True, default="camera_data", help='relative path folder for the output')
 @click.option('--output_file_name', type=click.STRING, required=True, default="multiview_frames.json", help='numerical format of the annotation (i.e: 00001.json)')
 def main(input_path,clip_name,output_folder,output_file_name):
@@ -49,7 +41,7 @@ def main(input_path,clip_name,output_folder,output_file_name):
        camera_names.append(camera_name)
        pose = load_json(pose_files[i])
        frames = process_annotation(pose)
-       multiview_data[camera_name] = frames 
+       multiview_data[camera_name] = frames
        output_folder = os.path.join(input_path,clip_name,camera_name)
        os.makedirs(output_folder, exist_ok=True)
        for frame_index,frame_data in frames.items():
@@ -59,11 +51,6 @@ def main(input_path,clip_name,output_folder,output_file_name):
            fullpath_outfile = os.path.join(output_folder,output_file_name)
            with open(fullpath_outfile, 'w') as f:
                json.dump(frame_dic, f)
-       
-
 
 if __name__ == "__main__":
     main()
-    
-    
-    

@@ -1,14 +1,9 @@
-from email.policy import default
 import os
-import pickle
 import cv2
 import numpy as np
 import json
 import click
-
-
-from Karate_utilities import Camera,NumpyEncoder
-from karate_calib_data_test_display_v1 import xyz_coords,uvs_K4A_Gianni,uvs_K4A_Master,uvs_K4A_Tino 
+from Karate_utilities import Camera
 
 # data taken from for old kinect https://github.com/knexfan0011/Kinect-V2-Camera-Calibration-Data
 # https://littlewing.hatenablog.com/entry/2019/08/25/183629
@@ -148,23 +143,23 @@ for i in range(num_points):
 cameras_out = {}
 
 @click.command()
-@click.option('--input_path', type=click.STRING, required=True, default="C:\\Projects\\Extra\\python\\FastAI\\Recon3D\\karate", help='annotations root folder')
+@click.option('--input_path', type=click.STRING, required=True, default="D:\\Datasets\\karate\\Test", help='annotations root folder')
 @click.option('--calibration_file', type=click.STRING, required=True, default="camera_data/camera_calib_xyz_uv.json", help='JSON calibration file')
-@click.option('--clip_name', type=click.STRING, required=True, default="20230714_193412", help='name of the clip to export in 3D')
+@click.option('--clip_name', type=click.STRING, required=True, default="20230714_200355", help='name of the clip to export in 3D')
 @click.option('--output_folder', type=click.STRING, required=True, default="camera_data", help='relative path folder for the output')
 @click.option('--output_file_name', type=click.STRING, required=True, default="camera.json", help='numerical format of the annotation (i.e: 00001.json)')
 @click.option('--display_results',type=click.BOOL,required=True,default=True,help='display the reprojection results')
 @click.option('--extra_points',type=click.FLOAT,default=None)
 def main(input_path,calibration_file,clip_name,output_folder,output_file_name,display_results,extra_points):
     camera_calib_xyz_uvs_file = os.path.join(input_path,clip_name,calibration_file)
-   
+
    # points_new = np.array(points,dtype=np.float64)
    # if extra_points != None:
    #     points = np.array(extra_points)
-        
+
     with open(camera_calib_xyz_uvs_file,"r") as f:
         camera_calib_xyz_uvs = json.load(f)
-    
+
     camera_dictionary = {}
     for key,camera_params in camera_calib_xyz_uvs['cameras'].items():
         resolution = camera_params['resolution']
@@ -174,21 +169,22 @@ def main(input_path,calibration_file,clip_name,output_folder,output_file_name,di
         xyz = np.array(camera_params['xyz_coords'],dtype=np.float64)
         uvs = np.array(camera_params['uvs'],dtype=np.float64)
         camera = factory_camera_from_k4a(resolution,principal_point,focal_length,dist_coeff)
-      
 
         # find the pose based on the xyz - uvs pair
         (success, rotation_vector, translation_vector) = cv2.solvePnP(xyz, uvs, camera.K,camera.dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
         rotation_matrix,_ = cv2.Rodrigues(rotation_vector) #3x3 matrix
-        camera_pos = np.linalg.inv( rotation_matrix) @ translation_vector
+        # negate the pos to get the camera position in world coordinates (in OpenCV format)
+        # do not negate the pos to get the camera position in world coordinates (in Vieww format)
+        camera_pos = -np.linalg.inv( rotation_matrix) @ translation_vector
 
         # update camera values
         camera.Rot = rotation_matrix
         camera.R_inv = np.linalg.inv( rotation_matrix)
         camera.tvec = translation_vector.reshape(3,)
         camera.rvec = rotation_vector.reshape(3,)
-        camera.pos = camera_pos.reshape(3,) 
+        camera.pos = camera_pos.reshape(3,)
         camera_dictionary[key] = camera.to_json_serializeable()
-        #  
+
         circle_size = 2
 
 
@@ -224,6 +220,3 @@ def main(input_path,calibration_file,clip_name,output_folder,output_file_name,di
 
 if __name__ == "__main__":
     main()
-    
-        
-    

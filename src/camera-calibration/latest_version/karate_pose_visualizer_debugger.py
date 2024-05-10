@@ -9,7 +9,7 @@ import glob
 import os
 import copy
 
-from karate_export_frames import load_json
+from Karate_utilities import load_json
 
 
 def display_2d_pose(img,poses,size=3,color=(0,0,255)):
@@ -52,12 +52,11 @@ def display_debug_poses(img,camera,poses,threshold=150,size=3,colors=[(255,0,0),
                 cv2.circle(img,(x,y),size,col,-1)
     
 if __name__ == "__main__":
-    input_path = "C:\\Projects\\Extra\\python\\FastAI\\Recon3D\\karate"
-    clip_name = "20230714_193412"
+    input_path = "D:\\Datasets\\karate\\Test"
+    clip_name = "20230714_200355"
     calibration_file = "camera.json"
     camera_data_path = "camera_data"
-    output_path = "my_output"
-    output_path = "output_3d_500_3cams"
+    output_path = "output_3d_150"
     
     camera_calib = os.path.join(input_path,clip_name,camera_data_path,calibration_file)
     
@@ -118,7 +117,7 @@ if __name__ == "__main__":
                     
                     img_debug_poses = copy.deepcopy(img)
                     debug_poses = load_json(debug_poses_frames[i])
-                    display_debug_poses(img_debug_poses,camera,debug_poses,threshold=350,size=3,colors=colors)
+                    display_debug_poses(img_debug_poses,camera,debug_poses,threshold=550,size=3,colors=colors)
                     
                     img_horizontal = np.hstack((img, img_poses2d))
                     img_horizontal1 = np.hstack((img_poses3d, img_debug_poses))
