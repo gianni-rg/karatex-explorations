@@ -26,7 +26,7 @@ def process_annotation(anno: dict) -> (dict,dict):
 
 @click.command()
 @click.option('--input_path', type=click.STRING, required=True, default="D:\\Datasets\\karate\\Test", help='annotations root folder')
-@click.option('--clip_name', type=click.STRING, required=True, default="20230714_200355", help='name of the clip to export in 3D')
+@click.option('--clip_name', type=click.STRING, required=True, default="20230714_193559", help='name of the clip to export in 3D')
 @click.option('--output_folder', type=click.STRING, required=True, default="camera_data", help='relative path folder for the output')
 @click.option('--output_file_name', type=click.STRING, required=True, default="multiview_frames.json", help='numerical format of the annotation (i.e: 00001.json)')
 def main(input_path,clip_name,output_folder,output_file_name):

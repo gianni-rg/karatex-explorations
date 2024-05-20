@@ -12,13 +12,13 @@ import copy
 from Karate_utilities import load_json
 
 
-def display_2d_pose(img,poses,size=3,color=(0,0,255)):
+def display_2d_pose(img,poses,size=3,colors=[(255,0,0),(255,255,0)]):
     person_data_array = poses['person_data']
     for j in range(len(person_data_array)):
         keypoints = person_data_array[j]['keypoints']
         for uv in keypoints:
             p =np.array(uv,dtype=np.int32)
-            cv2.circle(img,p,3,(0,0,255),-1)
+            cv2.circle(img,p,3,colors[j],-1)
     
 def display_recon_pose(img,camera,poses,size=3,color=(255,0,0)):
     for person in poses['reconstructedObjects']:
@@ -53,7 +53,7 @@ def display_debug_poses(img,camera,poses,threshold=150,size=3,colors=[(255,0,0),
     
 if __name__ == "__main__":
     input_path = "D:\\Datasets\\karate\\Test"
-    clip_name = "20230714_200355"
+    clip_name = "20230714_193412"
     calibration_file = "camera.json"
     camera_data_path = "camera_data"
     output_path = "output_3d_150"
@@ -108,7 +108,7 @@ if __name__ == "__main__":
                     poses_2d  = load_json(multiview_frames[key][i])
                     # display 2d poses 
                     img_poses2d = copy.deepcopy(img)
-                    display_2d_pose(img_poses2d,poses_2d,size=3,color=(0,0,255))
+                    display_2d_pose(img_poses2d,poses_2d,size=3,colors=colors)
                     
                     # display 3d poses 
                     img_poses3d = copy.deepcopy(img)
