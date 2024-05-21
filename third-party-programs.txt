@@ -1,0 +1,15 @@
+KarateX Third Party Software Licensing
+
+This file contains the list of third party software contained and/or used by
+this project and their required notices and/or license terms. This third party
+software, even if included with the distribution of this software, may be
+governed by separate license terms, including without limitation, third party
+license terms, and open source software license terms. These separate license
+terms govern your use of the third party programs as set forth in the
+"third-party-programs.txt" or other similarly-named text file.
+
+Third party programs and their corresponding required notices and/or license
+terms are listed below.
+
+-------------------------------------------------------------------------------
+TODO
