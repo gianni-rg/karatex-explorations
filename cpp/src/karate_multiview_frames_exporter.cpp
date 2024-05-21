@@ -46,11 +46,18 @@ std::vector<std::string> splitString(const std::string& str, char delimiter) {
     return result;
 }
 
-int main() {
-    std::string input_path = "D:\\Datasets\\karate\\Test";
-    std::string clip_name = "20230714_193412";
-    std::string output_folder = "camera_data";
-    std::string output_file_name = "multiview_frames.json";
+int main(int argc, char* argv[]) {
+    if (argc < 3) {
+        std::cerr << "Usage: " << argv[0] << " <input_path> <clip_name>\n";
+        return 1;
+    }
+
+    std::string input_path = argv[1];
+    std::string clip_name = argv[2];
+
+    // Example:
+    //std::string input_path = "D:\\Datasets\\karate\\Test";
+    //std::string clip_name = "20230714_193412";
 
     std::string pose_folder = input_path + "\\" + clip_name;
     std::vector<std::string> pose_files;
@@ -83,11 +90,14 @@ int main() {
             frameNumStr << std::setw(6) << std::setfill('0') << frame.first;
 
             std::string output_file_name = output_folder_path + "\\" + frameNumStr.str() + ".json";
-            std::ofstream o(output_file_name);
+            std::ofstream outputFile(output_file_name);
             nlohmann::json frame_dic;
             frame_dic["frame_index"] = frame.first;
             frame_dic["person_data"] = frame.second;
-            o << frame_dic << std::endl;
+
+            std::cout << "Exporting frame " << frame.first << " from camera " << camera_name << std::endl;
+
+            outputFile << frame_dic << std::endl;
         }
     }
 
