@@ -55,9 +55,9 @@ def process_frame(frameIdx, img):
 # CHECKERBOARD = (6,4)
 # CHECKERBOARD_SQUARE_SIZE_IN_M = 0.038  # 38mm size of square
 
-# 2023-07-14    Checkerboard 3: A3, 7x4, 49mm
+# 2023-07-14    Checkerboard 3: A3, 7x4, 50mm
 CHECKERBOARD = (7,4)
-CHECKERBOARD_SQUARE_SIZE_IN_M = 0.049  # 49mm size of square
+CHECKERBOARD_SQUARE_SIZE_IN_M = 0.050  # 50mm size of square
 
 # See: https://stackoverflow.com/questions/37310210/camera-calibration-with-opencv-how-to-adjust-chessboard-square-size
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -73,6 +73,7 @@ criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
 # define a video capture object
 video_files = [Path(p) for p in glob.glob("D:\\Datasets\\karate\\Synchronized\\**\\*.mp4", recursive=True)]
+#video_files = [Path("D:\\Datasets\\karate\\Synchronized\\20230714_193412\\S20.mp4")]
 
 #video_file_path = Path("E:\\Users\\Gianni\\Videos\\Karate\\20230202_204308.mp4")
 #video_file_path = Path("\\\\diskstation02\\photo\\2023\\Karate (esperimenti tracking)\\Karate_casa\\DJI_0267.MP4")

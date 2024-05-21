@@ -1,8 +1,8 @@
 
-# the opencv coordnate system is right-handed, 
-# with the x-axis pointing to the right and the y-axis pointing down. 
+# the OpenCV coordinate system is right-handed,
+# with the x-axis pointing to the right and the y-axis pointing down.
 
-xyz_coords = [ 
+xyz_coords = [
     # first row chessboard
     #[-0.049, -0.049, 0.0],[0., -0.049, 0.0],[0.049, -0.049, 0.0],[0.098, -0.049, 0.0],
     #[0.147, -0.049, 0.0],[0.196, -0.049, 0.0],[0.294, -0.049, 0.0],[0.343, -0.049, 0.0], #[0.392, -0.049, 0.0],[0.392, -0.049, 0.0],
@@ -31,7 +31,7 @@ xyz_coords = [
     #[0., 0.196, 0.0],[0.049, 0.196, 0.0],[0.098, 0.196, 0.0],
     #[0.147, 0.196, 0.0],[0.196,0.196, 0.0],[0.294, 0.196, 0.0],
     #[0.343, 0.196, 0.0], #[0.392, -0.049, 0.0],[0.392, -0.049, 0.0],
-    
+
     # TODO : add the point involving the depth of the box or any relevat reference point.
 ]
 
