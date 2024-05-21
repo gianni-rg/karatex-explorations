@@ -4,12 +4,12 @@ import numpy as np
 
 import random
 import json
-from Karate_utilities import Camera,get_random_color
+from karate_utilities import Camera,get_random_color
 import glob
 import os
 import copy
 
-from Karate_utilities import load_json
+from karate_utilities import load_json
 
 
 def display_2d_pose(img,poses,size=3,colors=[(255,0,0),(255,255,0)]):

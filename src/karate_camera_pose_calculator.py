@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import json
 import click
-from Karate_utilities import Camera
+from karate_utilities import Camera
 
 # data taken from for old kinect https://github.com/knexfan0011/Kinect-V2-Camera-Calibration-Data
 # https://littlewing.hatenablog.com/entry/2019/08/25/183629

@@ -2,3 +2,4 @@ numpy
 opencv-python
 click
 matplotlib
+scipy

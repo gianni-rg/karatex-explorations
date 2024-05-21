@@ -2,7 +2,7 @@ import json
 import glob
 import os
 import click
-from Karate_utilities import load_json
+from karate_utilities import load_json
 
 def process_annotation(anno: dict) -> (dict,dict):
     keypoints = {}

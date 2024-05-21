@@ -8,7 +8,7 @@ import copy
 from scipy.interpolate import interp1d
 from scipy.signal import savgol_filter
 
-from Karate_utilities import load_json
+from karate_utilities import load_json
 
 def extract_frames_from_json_files(json_files):
     poses_dic = {}
