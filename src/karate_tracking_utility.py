@@ -3,11 +3,51 @@ import warnings
 from time import time
 import numpy as np
 
+class id_BBoxes:
+    """
+    This class keeps tracks of players' ids along frames.
+    It starts by initializing the first frame and then assign the players to the id linked to the bounding box with highest IoU score.
+    If the score is lower than a threshold (0.3) a new id is given.
 
-# ------------------------------------------------------------------------------
-# Adapted from https://github.com/HoBeom/OneEuroFilter-Numpy
-# Original licence: Copyright (c)  HoBeom Jeon, under the MIT License.
-# ------------------------------------------------------------------------------
+    NB: It may fail in crowded situation giving to different player the same id.
+    """
+
+    def __init__(self):
+        self._bboxes={}
+        self._thr=0.3
+
+
+    def get_id(self, bbox):
+
+        max_IoU=-1
+        idx=-1
+
+        for k,v in self._bboxes.items():
+            iou=_compute_iou(bbox, v)
+            if iou >= max_IoU:
+                max_IoU = iou
+                idx = k
+        
+        if max_IoU < self._thr:
+
+            if len(self._bboxes.keys())==0:
+                idx=1
+
+            else: 
+                idx=max(self._bboxes.keys())+1
+            
+        #self._bboxes[idx] = bbox
+
+        return idx
+
+    @property
+    def bboxes(self):
+        return self._bboxes
+
+    def add_track(self, idx, bbox):
+        self._bboxes[idx]=bbox
+
+
 
 def smoothing_factor(t_e, cutoff):
     r = 2 * np.pi * cutoff * t_e
@@ -176,8 +216,29 @@ def oks_iou(g, d, a_g, a_d, sigmas=None, vis_thr=None):
     """
     if sigmas is None:
         sigmas = np.array([
-            .26, .25, .25, .35, .35, .79, .79, .72, .72, .62, .62, 1.07, 1.07,
-            .87, .87, .89, .89
+                0.026000000536441803,
+				0.02500000037252903,
+				0.02500000037252903,
+				0.03500000014901161,
+				0.03500000014901161,
+				0.07900000363588333,
+				0.07900000363588333,
+				0.07199999690055847,
+				0.07199999690055847,
+				0.06199999898672104,
+				0.06199999898672104,
+				0.10700000077486038,
+				0.10700000077486038,
+				0.08699999749660492,
+				0.08699999749660492,
+				0.08900000154972076,
+				0.08900000154972076,
+				0.06800000369548798,
+				0.06599999964237213,
+				0.06599999964237213,
+				0.09200000017881393,
+				0.09399999678134918,
+				0.09399999678134918,
         ]) / 10.0
     vars = (sigmas * 2)**2
     xg = g[0::3]

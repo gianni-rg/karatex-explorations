@@ -1,24 +1,25 @@
 
+import click
 import cv2
 import numpy as np
 
 import random
 import json
-from karate_utilities import Camera,get_random_color
+from karate_utilities import Camera,get_random_color,load_json
 import glob
 import os
 import copy
 
-from karate_utilities import load_json
 
-
-def display_2d_pose(img,poses,size=3,colors=[(255,0,0),(255,255,0)]):
+def display_2d_pose(img,poses,size=3,colors=[(0,0,255),(255,0,0),(255,0,0)]):
     person_data_array = poses['person_data']
+    len_colors = len(colors)
     for j in range(len(person_data_array)):
         keypoints = person_data_array[j]['keypoints']
+        color = colors[person_data_array[j]['track_id'] % len_colors]
         for uv in keypoints:
             p =np.array(uv,dtype=np.int32)
-            cv2.circle(img,p,3,colors[j],-1)
+            cv2.circle(img,p,3,color,-1)
     
 def display_recon_pose(img,camera,poses,size=3,color=(255,0,0)):
     for person in poses['reconstructedObjects']:
@@ -50,14 +51,40 @@ def display_debug_poses(img,camera,poses,threshold=150,size=3,colors=[(255,0,0),
                 x = int(uv[0])
                 y = int(uv[1])
                 cv2.circle(img,(x,y),size,col,-1)
-    
-if __name__ == "__main__":
-    input_path = "D:\\Datasets\\karate\\Test"
-    clip_name = "20230714_193412"
-    calibration_file = "camera.json"
-    camera_data_path = "camera_data"
-    output_path = "output_3d_150"
-    
+
+def display_bounding_boxes_and_labels(img, poses, colors=[(255,0,0),(0,255,0),(0,0,255)], thickness=2,font_size=4):
+    """
+    Display bounding boxes and labels for each pose.
+
+    Parameters:
+    img (np.ndarray): The image on which to draw the bounding boxes and labels.
+    poses (dict): The poses data, each pose should have 'bbox' and 'id' fields.
+    color (tuple): The color of the bounding boxes and labels (default is green).
+    thickness (int): The thickness of the bounding boxes.
+
+    Returns:
+    np.ndarray: The image with bounding boxes and labels drawn.
+    """
+    len_colors = len(colors)
+    for pose in poses['person_data']:
+        bbox = pose['bbox']
+        trackId = pose['track_id']
+        color = colors[trackId % len_colors]
+        # Draw the bounding box
+        cv2.rectangle(img, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), color, thickness)
+        # Draw the label
+        cv2.putText(img, str(trackId), (int(bbox[0]), int(bbox[1]) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, font_size)
+
+    return img
+
+@click.command()
+@click.option('--input_path', type=click.STRING, required=True, default="C:\\Projects\\Extra\\python\\FastAI\\Recon3D\\karate", help='annotations root folder')
+@click.option('--clip_name', type=click.STRING, required=True, default="20230714_193412", help='name of the clips folder')
+@click.option('--camera_data_path', type=click.STRING, required=True, default="camera_data", help='relative path folder for the camera calibration file')
+@click.option('--calibration_file', type=click.STRING, required=True, default="camera.json", help='JSON calibration file')
+@click.option('--output_path', type=click.STRING, required=True, default="output_3d_150", help='relative path folder for the output')
+@click.option('--display_tracking_info', type=click.BOOL, required=True, default=True, help='Display tracking info')
+def main(input_path,clip_name,calibration_file,camera_data_path,output_path,display_tracking_info):
     camera_calib = os.path.join(input_path,clip_name,camera_data_path,calibration_file)
     
     # create camera objects
@@ -108,8 +135,14 @@ if __name__ == "__main__":
                     poses_2d  = load_json(multiview_frames[key][i])
                     # display 2d poses 
                     img_poses2d = copy.deepcopy(img)
+                    if(display_tracking_info):
+                        # Display the bounding boxes and labels
+                        poses = load_json(multiview_frames[key][i])
+                        img_poses2d = display_bounding_boxes_and_labels(img_poses2d, poses,colors=colors)
                     display_2d_pose(img_poses2d,poses_2d,size=3,colors=colors)
                     
+                    
+
                     # display 3d poses 
                     img_poses3d = copy.deepcopy(img)
                     poses_3d = load_json(poses_frames[i])
@@ -117,7 +150,7 @@ if __name__ == "__main__":
                     
                     img_debug_poses = copy.deepcopy(img)
                     debug_poses = load_json(debug_poses_frames[i])
-                    display_debug_poses(img_debug_poses,camera,debug_poses,threshold=550,size=3,colors=colors)
+                    display_debug_poses(img_debug_poses,camera,debug_poses,threshold=500,size=3,colors=colors)
                     
                     img_horizontal = np.hstack((img, img_poses2d))
                     img_horizontal1 = np.hstack((img_poses3d, img_debug_poses))
@@ -129,8 +162,6 @@ if __name__ == "__main__":
                 else: 
                     break
 
+if __name__ == "__main__":
+   main()
     
-
-
-
-    print("main")

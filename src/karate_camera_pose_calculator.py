@@ -211,7 +211,7 @@ def main(input_path,calibration_file,clip_name,output_folder,output_file_name,di
             cv2.waitKey(0)
             cv2.imwrite(os.path.join(input_path,clip_name,output_folder,"reproj_"+filename),img)
             
-    # seroialize results
+    # serialize results
     output_file = os.path.join(input_path,clip_name,output_folder,output_file_name) 
     
     with open(output_file, 'w') as f:
