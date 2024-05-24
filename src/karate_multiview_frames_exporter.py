@@ -33,7 +33,7 @@ def process_annotation(anno: dict) -> (dict,dict):
 
 @click.command()
 @click.option('--input_path', type=click.STRING, required=True, default="D:\\Datasets\\karate\\Test", help='annotations root folder')
-@click.option('--clip_name', type=click.STRING, required=True, default="20230714_193559", help='name of the clip to export in 3D')
+@click.option('--clip_name', type=click.STRING, required=True, default="20230714_193921", help='name of the clip to export in 3D')
 @click.option('--output_folder', type=click.STRING, required=True, default="camera_data", help='relative path folder for the output')
 @click.option('--threshold', type=click.FLOAT, required=True, default=100, help='maximum error threshold')
 @click.option('--window_size', type=click.INT, required=True, default=10, help='frame to start from')

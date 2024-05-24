@@ -366,14 +366,15 @@ def export_frame_from_dic(cameras :dict,frames: dict,frame_nbr:int,skip_cameras:
 @click.command()
 @click.option('--input_path', type=click.STRING, required=True, default="D:\\Datasets\\karate\\Test", help='annotations root folder')
 @click.option('--calibration_file', type=click.STRING, required=True, default="camera_data/camera.json", help='JSON calibration file')
-@click.option('--clip_name', type=click.STRING, required=True, default="20230714_200355", help='name of the clip to export in 3D')
+@click.option('--clip_name', type=click.STRING, required=True, default="20230714_193921", help='name of the clip to export in 3D')
+@click.option('--annotation_folder', type=click.STRING, required=True, default="cleaned_smoothed", help='relative path folder for the output')
 @click.option('--output_folder', type=click.STRING, required=True, default="output_3d_150", help='relative path folder for the output')
 @click.option('--threshold', type=click.FLOAT, required=True, default=150, help='maximum error threshold')
 @click.option('--start_frame_nbr', type=click.INT, required=True, default=0, help='frame to start from')
 @click.option('--end_frame_nbr', type=click.INT, required=True, default=-1, help='last frame to process')
 @click.option('--debug_files', type=click.BOOL,required=False, default=True, help='Output intermediate files for debug purpose')
 @click.option('--nformat', type=click.STRING, required=True, default="06d", help='numerical format of the annotation (i.e: 00001.json)')
-def main(input_path,calibration_file,clip_name,start_frame_nbr,end_frame_nbr,debug_files,nformat,threshold,output_folder):
+def main(input_path,calibration_file,clip_name,annotation_folder,start_frame_nbr,end_frame_nbr,debug_files,nformat,threshold,output_folder):
 
     camera_calib = os.path.join(input_path,clip_name,calibration_file)
 
@@ -387,7 +388,6 @@ def main(input_path,calibration_file,clip_name,start_frame_nbr,end_frame_nbr,deb
     # this is used to force a certain order in camera comparison 
     #cameras_names_xi = {"K4A_Gianni":"1","K4A_Master":"2","K4A_Tino":"3"}
     for key,camera_json in cameras_json.items():
-       
        camera = Camera()
        camera.from_json(camera_json)
        camera_new_id = str(i)
@@ -396,15 +396,15 @@ def main(input_path,calibration_file,clip_name,start_frame_nbr,end_frame_nbr,deb
        cameras_names_xi[key] = camera_new_id
        cameras[camera_new_id] = camera
        i+=1
-       
+
     multiview_frames = {}
     for camera_id,_ in cameras.items():
-        camera_frames = glob.glob(input_path + f'/{clip_name}/{cameras_xi_names[camera_id]}/*.json')
+        folder_frames = os.path.join(input_path,clip_name,annotation_folder,cameras_xi_names[camera_id])
+        camera_frames = glob.glob(folder_frames + '/*.json')
         if camera_id not in multiview_frames:
             multiview_frames[camera_id] = []
         multiview_frames[camera_id] += camera_frames
 
-   
     output_fullpath = input_path+'/'+clip_name+'/'+output_folder
     if not os.path.exists(output_fullpath):
         os.makedirs(output_fullpath)

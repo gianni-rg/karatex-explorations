@@ -12,10 +12,10 @@ from karate_utilities import load_json
 
 @click.command()
 @click.option('--input_path', type=click.STRING, required=True, default="D:\\Datasets\\karate\\Test", help='annotations root folder')
-@click.option('--clip_name', type=click.STRING, required=True, default="20230714_193559", help='name of the clip to export in 3D')
+@click.option('--clip_name', type=click.STRING, required=True, default="20230714_193921", help='name of the clip to export in 3D')
 @click.option('--output_folder', type=click.STRING, required=True, default="cleaned", help='relative path folder for the output')
 @click.option('--valid_poses_dic', type=click.STRING, required=True, default='{"K4A_Gianni":[1],"K4A_Master":[1],"K4A_Tino":[1]}', help='maximum error threshold')
-@click.option('--merge_poses_dic', type=click.STRING, required=True, default='{"K4A_Gianni":[],"K4A_Master":[[1,4]],"K4A_Tino":[[1,4,6]]}', help='maximum error threshold')
+@click.option('--merge_poses_dic', type=click.STRING, required=True, default='{"K4A_Gianni":[],"K4A_Master":[],"K4A_Tino":[]}', help='maximum error threshold')
 def main(input_path,clip_name,output_folder,valid_poses_dic,merge_poses_dic):
    pose_folder  = os.path.join(input_path,clip_name)
    pose_files = glob.glob(pose_folder + "/*.json")
