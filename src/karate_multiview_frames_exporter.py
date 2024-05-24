@@ -32,13 +32,13 @@ def process_annotation(anno: dict) -> (dict,dict):
     return frames
 
 @click.command()
-@click.option('--input_path', type=click.STRING, required=True, default="C:\\Projects\\Extra\\python\\FastAI\\Recon3D\\karate", help='annotations root folder')
-@click.option('--clip_name', type=click.STRING, required=True, default="20230714_193412", help='name of the clip to export in 3D')
+@click.option('--input_path', type=click.STRING, required=True, default="D:\\Datasets\\karate\\Test", help='annotations root folder')
+@click.option('--clip_name', type=click.STRING, required=True, default="20230714_193559", help='name of the clip to export in 3D')
 @click.option('--output_folder', type=click.STRING, required=True, default="camera_data", help='relative path folder for the output')
 @click.option('--threshold', type=click.FLOAT, required=True, default=100, help='maximum error threshold')
 @click.option('--window_size', type=click.INT, required=True, default=10, help='frame to start from')
 @click.option('--window_length', type=click.INT, required=True, default=5, help='frame to start from')
-@click.option('--enable_tracking', type=click.BOOL, required=True, default=False, help='perform tracking between poses and frames')
+@click.option('--enable_tracking', type=click.BOOL, required=True, default=True, help='perform tracking between poses and frames')
 def main(input_path,clip_name,output_folder,threshold,window_size,window_length,enable_tracking):
    pose_folder  = os.path.join(input_path,clip_name)
    pose_files = glob.glob(pose_folder + "/*.json")

@@ -371,9 +371,9 @@ def export_frame_from_dic(cameras :dict,frames: dict,frame_nbr:int,skip_cameras:
 @click.option('--threshold', type=click.FLOAT, required=True, default=150, help='maximum error threshold')
 @click.option('--start_frame_nbr', type=click.INT, required=True, default=0, help='frame to start from')
 @click.option('--end_frame_nbr', type=click.INT, required=True, default=-1, help='last frame to process')
-@click.option('--ifiles', type=click.BOOL,required=False, default=True, help='Output intermediate files for debug purpose')
+@click.option('--debug_files', type=click.BOOL,required=False, default=True, help='Output intermediate files for debug purpose')
 @click.option('--nformat', type=click.STRING, required=True, default="06d", help='numerical format of the annotation (i.e: 00001.json)')
-def main(input_path,calibration_file,clip_name,start_frame_nbr,end_frame_nbr,ifiles,nformat,threshold,output_folder):
+def main(input_path,calibration_file,clip_name,start_frame_nbr,end_frame_nbr,debug_files,nformat,threshold,output_folder):
 
     camera_calib = os.path.join(input_path,clip_name,calibration_file)
 
@@ -434,8 +434,8 @@ def main(input_path,calibration_file,clip_name,start_frame_nbr,end_frame_nbr,ifi
         multiview_frame = {f"{j+1}": load_json(multiview_frames[camera_ids[j]][i]) for j in range(len(camera_ids))}
         
         
-        #futures.append(pool.submit(export_frame_from_dic,cameras,multiview_frame,i+1,skip_cameras,output_fullpath,threshold,nformat,ifiles))
-        export_frame_from_dic(cameras,multiview_frame,i+1,skip_cameras,output_fullpath,threshold,nformat,ifiles)
+        #futures.append(pool.submit(export_frame_from_dic,cameras,multiview_frame,i+1,skip_cameras,output_fullpath,threshold,nformat,debug_files))
+        export_frame_from_dic(cameras,multiview_frame,i+1,skip_cameras,output_fullpath,threshold,nformat,debug_files)
     
     #wait(futures)
     

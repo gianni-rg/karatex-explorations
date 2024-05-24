@@ -9,6 +9,7 @@ from karate_utilities import Camera,get_random_color,load_json
 import glob
 import os
 import copy
+from pathlib import Path
 
 
 def display_2d_pose(img,poses,size=3,colors=[(0,0,255),(255,0,0),(255,0,0)]):
@@ -78,27 +79,29 @@ def display_bounding_boxes_and_labels(img, poses, colors=[(255,0,0),(0,255,0),(0
     return img
 
 @click.command()
-@click.option('--input_path', type=click.STRING, required=True, default="C:\\Projects\\Extra\\python\\FastAI\\Recon3D\\karate", help='annotations root folder')
-@click.option('--clip_name', type=click.STRING, required=True, default="20230714_193412", help='name of the clips folder')
+@click.option('--input_path', type=click.STRING, required=True, default="D:\\Datasets\\karate\\Test", help='annotations root folder')
+@click.option('--clip_name', type=click.STRING, required=True, default="20230714_193559", help='name of the clips folder')
 @click.option('--camera_data_path', type=click.STRING, required=True, default="camera_data", help='relative path folder for the camera calibration file')
 @click.option('--calibration_file', type=click.STRING, required=True, default="camera.json", help='JSON calibration file')
-@click.option('--output_path', type=click.STRING, required=True, default="output_3d_150", help='relative path folder for the output')
+@click.option('--input_2d_poses', type=click.STRING, required=True, default="cleaned", help='relative path folder for the output')
+@click.option('--input_3d_poses', type=click.STRING, required=True, default="output_3d_150", help='relative path folder for the output')
 @click.option('--display_tracking_info', type=click.BOOL, required=True, default=True, help='Display tracking info')
-def main(input_path,clip_name,calibration_file,camera_data_path,output_path,display_tracking_info):
+@click.option('--skip_frame_step', type=click.INT, required=True, default=5, help='Skip Frames Step')
+@click.option('--playback_fps', type=click.INT, required=True, default=30, help='Playback FPS')
+def main(input_path,clip_name,calibration_file,camera_data_path,input_2d_poses,input_3d_poses,display_tracking_info, skip_frame_step, playback_fps):
     camera_calib = os.path.join(input_path,clip_name,camera_data_path,calibration_file)
-    
+
     # create camera objects
     with open(camera_calib,'r') as f:
         cameras_json = json.load(f)
-    
+
     cameras = {}
     i = 1
     cameras_xi_names = {}
     cameras_names_xi = {}
-    # this is used to force a certain order in camera comparison 
+    # this is used to force a certain order in camera comparison
     #cameras_names_xi = {"K4A_Gianni":"1","K4A_Master":"2","K4A_Tino":"3"}
     for key,camera_json in cameras_json.items():
-       
        camera = Camera()
        camera.from_json(camera_json)
        camera_new_id = str(i)
@@ -107,60 +110,68 @@ def main(input_path,clip_name,calibration_file,camera_data_path,output_path,disp
        cameras_names_xi[key] = camera_new_id
        cameras[camera_new_id] = camera
        i+=1
-       
+
     multiview_frames = {}
     for camera_id,_ in cameras.items():
-        camera_frames = glob.glob(input_path + f'/{clip_name}/{cameras_xi_names[camera_id]}/*.json')
+        poses_2d_path = Path.joinpath(Path(input_path),clip_name,input_2d_poses,cameras_xi_names[camera_id])
+        camera_frames = glob.glob(str(poses_2d_path) + '/*.json')
         if camera_id not in multiview_frames:
             multiview_frames[camera_id] = []
         multiview_frames[camera_id] += camera_frames
-    
-    
-    debug_poses_frames = glob.glob(input_path + f'/{clip_name}/{output_path}/debug/poses*.json')
-    poses_frames = glob.glob(input_path + f'/{clip_name}/{output_path}/*.json')
+
+    debug_poses_frames = glob.glob(input_path + f'/{clip_name}/{input_3d_poses}/debug/poses*.json')
+    poses_frames = glob.glob(input_path + f'/{clip_name}/{input_3d_poses}/*.json')
     colors = [get_random_color() for i in range(0,10)]
     num_frames = len(multiview_frames['1'])
     for key,camera in cameras.items():
-        for i in range(0,num_frames,5):
-            video_file = os.path.join(input_path,clip_name,f"{cameras_xi_names[key]}.mp4")
-            cap = cv2.VideoCapture(video_file) 
-            if not cap.isOpened(): 
-                print("Error opening video file")
-            else:
-                # Capture frame-by-frame
-                cap.set(cv2.CAP_PROP_POS_FRAMES, i)
-                ret, img = cap.read()
-                frame_num = f"{i:06d}"
-                if ret:
-                    poses_2d  = load_json(multiview_frames[key][i])
-                    # display 2d poses 
-                    img_poses2d = copy.deepcopy(img)
-                    if(display_tracking_info):
-                        # Display the bounding boxes and labels
-                        poses = load_json(multiview_frames[key][i])
-                        img_poses2d = display_bounding_boxes_and_labels(img_poses2d, poses,colors=colors)
-                    display_2d_pose(img_poses2d,poses_2d,size=3,colors=colors)
-                    
-                    
+        video_file = os.path.join(input_path,clip_name,f"{cameras_xi_names[key]}.mp4")
+        cap = cv2.VideoCapture(video_file)
+        #playback_fps = cap.get(cv2.CAP_PROP_FPS)
+        if not cap.isOpened():
+            print("Error opening video file")
+            continue
+        for i in range(0,num_frames,skip_frame_step):
+            # TODO: read the fps from the video file
 
-                    # display 3d poses 
-                    img_poses3d = copy.deepcopy(img)
+            # Capture frame-by-frame
+            cap.set(cv2.CAP_PROP_POS_FRAMES, i)
+            ret, img = cap.read()
+            if not ret:
+                break
+
+            frame_num = f"{i:06d}"
+            if ret:
+                poses_2d  = load_json(multiview_frames[key][i])
+                # display 2d poses
+                img_poses2d = copy.deepcopy(img)
+                if(display_tracking_info):
+                    # Display the bounding boxes and labels
+                    poses = load_json(multiview_frames[key][i])
+                    img_poses2d = display_bounding_boxes_and_labels(img_poses2d, poses,colors=colors)
+                display_2d_pose(img_poses2d,poses_2d,size=3,colors=colors)
+
+                # display 3d poses
+                img_poses3d = copy.deepcopy(img)
+                if len(poses_frames) > 0:
                     poses_3d = load_json(poses_frames[i])
-                    display_recon_pose(img_poses3d,camera,poses_3d,size=3,color=(255,0,0))
-                    
-                    img_debug_poses = copy.deepcopy(img)
+                    if len(poses_3d) > 0:
+                        display_recon_pose(img_poses3d,camera,poses_3d,size=3,color=(255,0,0))
+
+                img_debug_poses = copy.deepcopy(img)
+                if len(debug_poses_frames) > 0:
                     debug_poses = load_json(debug_poses_frames[i])
                     display_debug_poses(img_debug_poses,camera,debug_poses,threshold=500,size=3,colors=colors)
-                    
-                    img_horizontal = np.hstack((img, img_poses2d))
-                    img_horizontal1 = np.hstack((img_poses3d, img_debug_poses))
-                    
-                    img_tot = np.vstack((img_horizontal,img_horizontal1))
-                    cv2.imshow(f'Preview',  cv2.resize(img_tot, (1280, 720)))
-                    cv2.waitKey(1)
-                    cap.release()  # Close the video capture object
-                else: 
-                    break
+
+                img_horizontal = np.hstack((img, img_poses2d))
+                img_horizontal1 = np.hstack((img_poses3d, img_debug_poses))
+
+                img_tot = np.vstack((img_horizontal,img_horizontal1))
+                cv2.imshow(f'Preview [{cameras_xi_names[key]}]', cv2.resize(img_tot, (1280, 720)))
+                cv2.waitKey(1)
+            else:
+                break
+        cv2.destroyAllWindows()
+        cap.release()  # Close the video capture object
 
 if __name__ == "__main__":
    main()

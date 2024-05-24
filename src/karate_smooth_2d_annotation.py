@@ -145,27 +145,21 @@ def process_annotation(anno: dict) -> (dict,dict):
     return frames
 
 @click.command()
-@click.option('--input_path', type=click.STRING, required=True, default="C:\\Projects\\Extra\\python\\FastAI\\Recon3D\\karate", help='annotations root folder')
-@click.option('--clip_name', type=click.STRING, required=True, default="20230714_193412", help='name of the clip to export in 3D')
-@click.option('--annotation_folder', type=click.STRING, required=True, default="stripped", help='relative path folder for the output')
-@click.option('--output_folder', type=click.STRING, required=True, default="stripped_smmothed", help='relative path folder for the output')
+@click.option('--input_path', type=click.STRING, required=True, default="D:\\Datasets\\karate\\Test", help='annotations root folder')
+@click.option('--clip_name', type=click.STRING, required=True, default="20230714_193559", help='name of the clip to export in 3D')
+@click.option('--annotation_folder', type=click.STRING, required=True, default="cleaned", help='relative path folder for the input annotations')
+@click.option('--output_folder', type=click.STRING, required=True, default="cleaned_smoothed", help='relative path folder for the output')
 @click.option('--calibration_file', type=click.STRING, required=True, default="camera_data/camera.json", help='JSON calibration file')
 @click.option('--threshold', type=click.FLOAT, required=True, default=100, help='maximum error threshold')
 @click.option('--window_size', type=click.INT, required=True, default=10, help='frame to start from')
 @click.option('--window_length', type=click.INT, required=True, default=5, help='frame to start from')
 def main(input_path,clip_name,output_folder,calibration_file,annotation_folder,threshold,window_size,window_length):
-   pose_folder  = os.path.join(input_path,clip_name,"stripped")
-   pose_files = glob.glob(pose_folder + "/*.json")
-   camera_names = []
-   multiview_data = {}
-   poses = []
-   
 
    camera_calib = os.path.join(input_path,clip_name,calibration_file)
-    
+
    with open(camera_calib,'r') as f:
         cameras_json = json.load(f)
-    
+
    frames_per_camera = {}
    for camera_name,_ in cameras_json.items():
        folder_frames = os.path.join(input_path,clip_name,annotation_folder,camera_name)
@@ -176,23 +170,26 @@ def main(input_path,clip_name,output_folder,calibration_file,annotation_folder,t
            frame = load_json(file)
            frame_index = frame['frame_index']
            original_frames.append(frame)
+           if len(frame['person_data']) == 0:
+               print(f"Frame {frame_index} has no poses")
            for pose in frame['person_data']:
-               points_array = np.array(pose['keypoints'],dtype=np.float32)   
+               points_array = np.array(pose['keypoints'],dtype=np.float32)
                track_id = pose['track_id']
                if track_id not in poses_dic_frames:
                    poses_dic_frames[track_id] = []
-               
-                   # TODO: check if correct insert missing frames as None 
-                   if (len(poses_dic_frames[track_id])) < i:
-                      diff = i - len(poses_dic_frames[track_id])
-                      poses_dic_frames[track_id] += [None]*diff
-                    
+
+                # TODO: check if correct insert missing frames as None
+               if i>0 and len(poses_dic_frames[track_id]) <= i:
+                    diff = i+1 - len(poses_dic_frames[track_id])
+                    poses_dic_frames[track_id] += [None]*diff
+
                poses_dic_frames[track_id].append(points_array)
-       
+
        frames_per_camera[camera_name] = poses_dic_frames
        
 
        # apply smoothing to the frames for each track_id
+       # TODO: expose additional parameters as command line arguments
        for track_id,frames in poses_dic_frames.items():
               frames = replace_none_with_nans(frames)
               frames = interpolate_using_window(frames, window_size=window_size, method='linear')

@@ -3,3 +3,4 @@ opencv-python
 click
 matplotlib
 scipy
+tqdm

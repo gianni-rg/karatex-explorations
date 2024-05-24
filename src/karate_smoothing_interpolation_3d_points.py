@@ -150,8 +150,7 @@ print("Smoothed Frames:\n", smoothed_frames)
 @click.option('--threshold', type=click.FLOAT, required=True, default=100, help='maximum error threshold')
 @click.option('--window_size', type=click.INT, required=True, default=50, help='frame to start from')
 @click.option('--window_length', type=click.INT, required=True, default=5, help='frame to start from')
-@click.option('--ifiles', type=click.BOOL,required=False, default=True, help='Output intermediate files for debug purpose')
-def main(input_path,clip_name,input_folder,window_size,threshold,output_folder,ifiles,window_length):
+def main(input_path,clip_name,input_folder,window_size,threshold,output_folder,window_length):
     input_files_path = os.path.join(input_path,clip_name,input_folder)
     input_files  = glob.glob(input_files_path + "/*.json")
     poses_dic = extract_frames_from_json_files(input_files)
