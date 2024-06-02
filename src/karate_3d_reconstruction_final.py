@@ -7,8 +7,10 @@ import multiprocessing
 
 from concurrent.futures import ThreadPoolExecutor, wait
 
-from karate_utilities import Camera,ProjectPointsCV,GetPointCameraRayFromPixel,RayRayIntersectionExDualUpdated
+from karate_utilities import Camera, ProjectPointsCV, GetPointCameraRayFromPixel, RayRayIntersectionExDualUpdated
 from karate_utilities import load_json
+
+nconverter = lambda x: f"{x:06d}"
 
 def serialize_to_json(fullpath, serializable_obj):
     with open(fullpath,'w') as f:
@@ -35,12 +37,12 @@ def results_to_serializable_format(result_dic):
         exportable_dict[key] = {}
         for i in range(len(result_dic[camerakey]['pairs'])):
             pair_key = result_dic[camerakey]['pairs'][i]
-            if(pair_key[1] < 0 ): # invalid match 
+            if(pair_key[1] < 0 ): # invalid match
                 continue
 
             pair = str(pair_key[0]) + '_' +str(pair_key[1])
             mse = result_dic[camerakey]['mse'][i]
-            # make all the keypoints into a list of float/double 
+            # make all the keypoints into a list of float/double
             keys_3d = []
             keys_3d.append(mse)
             for j in range(len(result_dic[camerakey]['keys_3d'][i])):
@@ -50,28 +52,26 @@ def results_to_serializable_format(result_dic):
             #pdata= PlayerData(keys_3d,pair,mse)
             pdata= {"points":keys_3d,"id_pair":pair,"mse":mse}
             exportable_dict[key][pair]  = keys_3d
-            
+
     return exportable_dict
 
 def export_intermediate_data(fullpath,dic):
     serializable_dic = results_to_serializable_format(dic)
     serialize_to_json(fullpath,serializable_dic)
 
-
-
-    
-nconverter = lambda x: f"{x:06d}"
-
 def get_3d_poses_debug(cameras, keypoints,bboxes,invalid_poses_dic,verbose=False):
     results_camera = {}
     valid_keys = list(cameras.keys())
+
+    frame_min_mse = 1e10
+    frame_max_mse = 1e-10
 
     # iterate through camera pairs
     for i in range(len(valid_keys)):
        for j in range(i+1,len(valid_keys)):
            cam1_id = valid_keys[i]
            cam2_id = valid_keys[j]
-           print(f'Computing reconstruction for camera {valid_keys[i]} and camera {valid_keys[j]}')
+           #print(f'Computing reconstruction for camera {valid_keys[i]} and camera {valid_keys[j]}')
            key_camera_pair = (valid_keys[i],valid_keys[j])
 
            # iterate through all the poses in the first camera and poses in the second camera
@@ -81,36 +81,36 @@ def get_3d_poses_debug(cameras, keypoints,bboxes,invalid_poses_dic,verbose=False
            #tmp = cam1_id
            #cam1_id = cam2_id
            #cam2_id = tmp
-           
+
            cam1 = cameras[cam1_id]
            cam2 = cameras[cam2_id]
            poses_cam1 = keypoints[cam1_id]
            poses_cam2 = keypoints[cam2_id]
            invalid_poses_c1 = set(invalid_poses_dic[cam1_id])
            invalid_poses_c2 = set(invalid_poses_dic[cam2_id])
-           
+
            #remove invalid poses form the two lists from each camera
            results_camera[key_camera_pair] = {"pairs":[],"mse":[],"keys_3d":[]}
            # iterate through all the poses in the first camera and poses in the second camera
-           # and find the match 
+           # and find the match
            for id_pose_c1,pose_c1 in poses_cam1.items():
                if id_pose_c1 in invalid_poses_c1:
                    continue
                if(verbose):
-                    print(f"Finding best match for pose {id_pose_c1} for camera {cam1_id}" 
+                    print(f"Finding best match for pose {id_pose_c1} for camera {cam1_id}"
                          +f" considering all poses from camera {cam2_id}")
                best_id = -1
                best_3dpoints = []
-               min_mse = 10e10
+               min_mse = 1e10
                for id_pose_c2,pose_c2 in poses_cam2.items():
                    if id_pose_c2 in invalid_poses_c2:
                        continue
                    # find the match reprojection error for the two poses
-                   points3d = [] 
-                   mse = 0        
+                   points3d = []
+                   mse = 0
                    num_keypoints  = len(pose_c1)
                    bSkip = False
-                   
+
                    # reproject the 3D points in the 3D space and compute the reprojection error
                    for k in range(num_keypoints):
                        orig_pixel_c1 = pose_c1[k,:]
@@ -120,7 +120,7 @@ def get_3d_poses_debug(cameras, keypoints,bboxes,invalid_poses_dic,verbose=False
                        a,b,sin = RayRayIntersectionExDualUpdated(cam1.pos,dir_1,cam2.pos,dir_2,eps=1e-4)
                        # a,b,sin =  GeometryUtilities.RayRayIntersectionExDualVieww(cam1.pos,dir_1,cam2.pos,dir_2,eps=1e-4)
 
-                       # check if no intersection or contraints violated (TODO: add contrain check)
+                       # check if no intersection or contraints violated (TODO: add constrain check)
                        if(a is None or b is None):
                             print("BAD POINT No Intersection")
                             count += 1
@@ -129,7 +129,7 @@ def get_3d_poses_debug(cameras, keypoints,bboxes,invalid_poses_dic,verbose=False
 
                        intersection = (a+b) * 0.5
                        # Negate to get in Vieww space reference (if camera was generated for Vieww space)
-                       #intersection = -1 * intersection 
+                       #intersection = -1 * intersection
                        points3d.append(intersection)
                        pixel_c1 = ProjectPointsCV(intersection,cam1.K,cam1.rvec,cam1.tvec,cam1.dist_coeffs)
                        pixel_c2 = ProjectPointsCV(intersection,cam2.K,cam2.rvec,cam2.tvec,cam2.dist_coeffs)
@@ -139,7 +139,7 @@ def get_3d_poses_debug(cameras, keypoints,bboxes,invalid_poses_dic,verbose=False
                        error_sqr_c1 = np.linalg.norm((pixel_c1 - orig_pixel_c1))
                        error_sqr_c2 = np.linalg.norm((pixel_c2 - orig_pixel_c2))
 
-                       # this should be the average 1st error 
+                       # this should be the average 1st error
                        err_sqr = (error_sqr_c1 + error_sqr_c2)/2.0
                        err_abs = (error_abs_c1 + error_abs_c2)/2.0
 
@@ -147,43 +147,41 @@ def get_3d_poses_debug(cameras, keypoints,bboxes,invalid_poses_dic,verbose=False
                        mse += err_sqr #error_sqr
 
                        if(verbose):
-                            print(f"Joint_{k+1} -> 3D: {intersection}: original pixels c_{cam1_id} {orig_pixel_c1}"+ 
+                            print(f"Joint_{k+1} -> 3D: {intersection}: original pixels c_{cam1_id} {orig_pixel_c1}"+
                                   f"c{cam2_id}: {orig_pixel_c2} \n"+
                                   f"reproj: {pixel_c1} {pixel_c2} error: {err_sqr}, err_abs {err_abs}, tot error: {mse}")
 
-                   if(True):
+                   if(verbose):
                        print(f"Comparing pose with id: {id_pose_c1} from camera {cam1_id} with pose with id: {id_pose_c2} from camera {cam2_id}: error: {mse}") # id_cam1 is the left camera 4-5 is camera 5
+
+                   frame_min_mse = min(frame_min_mse, mse)
+                   frame_max_mse = max(frame_max_mse, mse)
 
                    if(mse < min_mse and bSkip == False):
                         best_id = id_pose_c2
                         min_mse = mse
                         best_3dpoints = points3d
-                            
-                       #dx,key3d,mse = find_match_avg(poses_cam1,poses_cam2,id_pose_c1,cam1,cam2,invalid_poses_c2,verbose)
-                    
-               # store the best match for the pose nth from camera 1 found among all poses in camera 2  
-               #results_camera[key_camera_pair]= [(id_pose_c1,best_id)] = (best_id,best_3dpoints,mse)
+
+               # store the best match for the pose nth from camera 1 found among all poses in camera 2
                results_camera[key_camera_pair]['pairs'].append((id_pose_c1,best_id))
                results_camera[key_camera_pair]['mse'].append(min_mse)
                results_camera[key_camera_pair]['keys_3d'].append(best_3dpoints)
-           
-           #results_camera[key_camera_pair] = res[key_camera_pair]
-   
-    return results_camera
 
+    if frame_min_mse >= 1e10:
+        print("No valid poses found in the frame.")
+
+    return results_camera, frame_min_mse, frame_max_mse
 
 def find_unique_id(poses_dic: dict, output_folder:str,frame_to_format:str,mse_threshold=50.0,verbose=False,ifiles=False):
     matches = {}
     char = 'A'
 
-    # iterate thoruh all the poses and delete those below a certain threshold
+    # iterate through all the poses and delete those below a certain threshold
     #for camera_pair_key in poses_dic:
      #   for pose_pair_key in poses_dic[camera_pair_key]:
       #      print("TODO")
 
-    #clean up matches: remove those for mse is greater than the threshold 
-    
-
+    #clean up matches: remove those for mse is greater than the threshold
     for camera_pair_key in poses_dic:
        if(verbose):
             print(f'Starting with cameras {camera_pair_key} \n')
@@ -192,8 +190,8 @@ def find_unique_id(poses_dic: dict, output_folder:str,frame_to_format:str,mse_th
             print(f'{pairs}')
             print(f'{mse_res}')
        # find matches across the selected cameras
-       camera1_id = camera_pair_key[0] 
-       camera2_id = camera_pair_key[1] 
+       camera1_id = camera_pair_key[0]
+       camera2_id = camera_pair_key[1]
        if(camera1_id not in  matches):
             matches[camera1_id] = {}
        if(camera2_id not in  matches):
@@ -214,25 +212,24 @@ def find_unique_id(poses_dic: dict, output_folder:str,frame_to_format:str,mse_th
                  matches[camera2_id][pose2_id] = matches[camera1_id][pose1_id]
             if(verbose):
                  print(f"{poses_dic[camera_pair_key]['pairs'][i]} {poses_dic[camera_pair_key]['mse'][i]}")
-         
+
        if verbose:
            print(matches)
     if verbose:
         print(matches)
     matches_full = output_folder + f"/debug/matches_{frame_to_format}.json"
-    
-    # save to disk 
+
+    # save to disk
     if(ifiles == True):
         serialize_to_json(matches_full,matches)
 
     return matches
 
-
 def find_unique_id_mse(poses_dic: dict, output_folder:str,frame_to_format:str,mse_threshold=50.0,verbose=False,ifiles=False):
     matches = {}
     char = 'A'
 
-    #clean up matches: remove those for mse is greater than the threshold 
+    #clean up matches: remove those for mse is greater than the threshold
 
     for key in poses_dic:
        if(verbose):
@@ -241,7 +238,7 @@ def find_unique_id_mse(poses_dic: dict, output_folder:str,frame_to_format:str,ms
             mse_res = poses_dic[key]['mse']
             print(f'{pairs}')
             print(f'{mse_res}')
-       # find matches across the selected cameras 
+       # find matches across the selected cameras
        if(key[0] not in  matches):
             matches[key[0]] = {}
        if(key[1] not in  matches):
@@ -261,29 +258,26 @@ def find_unique_id_mse(poses_dic: dict, output_folder:str,frame_to_format:str,ms
                  matches[key[1]][id_2] = matches[key[0]][id_1]
             if(verbose):
                  print(f"{poses_dic[key]['pairs'][i]} {poses_dic[key]['mse'][i]}")
-         
+
        if verbose:
            print(matches)
     if verbose:
         print(matches)
     matches_full = output_folder + f"/debug/matches_{frame_to_format}.json"
-    
-    # save to disk 
+
+    # save to disk
     if(ifiles == True):
         serialize_to_json(matches_full,matches)
 
     return matches
 
 def parse_multiframe_dic(dic: dict):
-    
+
     keypoints = {}
     boxes = {}
-    #for key in dic: # old version for frame loaded from pickle
     for key in dic:
         keypoints[key] = {}
         boxes[key] = {}
-        #print(len(dic[key]))
-        #print(dic[key][0])
         for i in range(len(dic[key]['person_data'])):
             keys = np.array(dic[key]['person_data'][i]['keypoints'])
             bbox = np.array(dic[key]['person_data'][i]['bbox'])
@@ -301,67 +295,65 @@ def average_poses(poses_dic, matches_dic,threshold=50.0,verbose=True):
                 continue
 
             key_pair  = poses_dic[key_cam]['pairs'][i]
-            #if poses_dic[key_cam][key_pair]: # check if threshold 
+            #if poses_dic[key_cam][key_pair]: # check if threshold
             id_camera = key_cam[0]
-            # NOTE le bounding box sono invertite 
-            id_box    = poses_dic[key_cam]['pairs'][i][0]    
+            # NOTE: bounding box are inverted
+            id_box = poses_dic[key_cam]['pairs'][i][0]
             id = "NOT_VALID"
             if(id_camera in matches_dic):
                 id =  matches_dic[id_camera][id_box]
 
             if id  not in unique_poses:
                 unique_poses[id] = []
-            
-            # Note : the average could be computed directly here 
+
+            # Note : the average could be computed directly here
             unique_poses[id].append(poses_dic[key_cam]['keys_3d'][i])
-  
+
     # evaluate average
     average_poses = {}
-    
+
     for key in unique_poses:
         tmp = np.array(unique_poses[key])
         average_poses[key] =  np.average(tmp, axis=0)
-    
-        
+
     return unique_poses,average_poses
- 
 
 def export_frame_from_dic(cameras :dict,frames: dict,frame_nbr:int,skip_cameras: set,output_folder: str,threshold: float,nformat="06d",ifiles=False):
     print(f"Exporting frame {frame_nbr}.")
     keypts, bboxes = parse_multiframe_dic(frames)
     invalid_poses = {"1":[],"2":[],"3":[]}
     # new version of the function
-    poses = get_3d_poses_debug(cameras,keypts,bboxes,invalid_poses)
+    poses, frame_min_mse, frame_max_mse = get_3d_poses_debug(cameras, keypts, bboxes, invalid_poses)
     #poses = get_3D_poses(cameras,keypts,bboxes,bad_keypts)
     output_fullpath =  output_folder
     frame_to_format = format(frame_nbr,nformat)
     debug_folder = output_fullpath + f"/debug"
     os.makedirs(debug_folder,exist_ok=True)
     output_pose_intermediate = debug_folder + f"/poses_{frame_to_format}.json"
-    
-    # these two generate intermediate values to be used in teh current version of the viewer, 
-    # the average 3D points are then calulated in unity to display the results.
+
+    # these two generate intermediate values to be used in the current version of the viewer,
+    # the average 3D points are then calculated in Unity to display the results.
     # this is for debug purpose: remove in the future.
     if(ifiles==True):
         export_intermediate_data(output_pose_intermediate,poses)
     unique_dic = find_unique_id(poses,output_fullpath,frame_to_format, mse_threshold=threshold,ifiles=ifiles,verbose=False)
 
-    unique_poses,avg_poses = average_poses(poses, unique_dic,threshold=threshold)
+    unique_poses, avg_poses = average_poses(poses, unique_dic,threshold=threshold)
     poses = poses_to_serializable(avg_poses)
     ##dic_poses = {"data":poses}
     frame_dic = {"reconstructedObjects":[],"frameIndex":frame_nbr}
     ctr = 0
     for key in avg_poses:
         person = {"trackId":ctr,"objectTypeId":1,"points":[]}
-        
+
         person['points'] =avg_poses[key].flatten().tolist()
         frame_dic['reconstructedObjects'].append(person)
         ctr += 1
-    
+
     poses_path  = output_fullpath + f"/frame_{frame_to_format}.json"
     serialize_to_json(poses_path,frame_dic)
-    print(f"Finished exporting frame {frame_nbr}.")
-
+    #print(f"Finished exporting frame {frame_nbr}.")
+    return frame_min_mse, frame_max_mse
 
 @click.command()
 @click.option('--input_path', type=click.STRING, required=True, default="D:\\Datasets\\karate\\Test", help='annotations root folder')
@@ -385,7 +377,7 @@ def main(input_path,calibration_file,clip_name,annotation_folder,start_frame_nbr
     i = 1
     cameras_xi_names = {}
     cameras_names_xi = {}
-    # this is used to force a certain order in camera comparison 
+    # this is used to force a certain order in camera comparison
     #cameras_names_xi = {"K4A_Gianni":"1","K4A_Master":"2","K4A_Tino":"3"}
     for key,camera_json in cameras_json.items():
        camera = Camera()
@@ -411,7 +403,7 @@ def main(input_path,calibration_file,clip_name,annotation_folder,start_frame_nbr
 
     frame_path = input_path
     frame_nbr = 0
-    # get all subfolders in the 
+    # get all subfolders in the
     # this is the part to iterate through
     futures = []
     num_threads = multiprocessing.cpu_count()
@@ -423,23 +415,31 @@ def main(input_path,calibration_file,clip_name,annotation_folder,start_frame_nbr
     end_frame = end_frame_nbr
     if(start_frame < 0):
         start_frame = 0
-  
-   
-    
+
     if(end_frame < 0):
         end_frame = num_frames
+
+    global_min_mse = 1e10
+    global_max_mse = 1e-10
+    global_mean_min_mse = 0
+
     for i in range(start_frame,end_frame):
-        # create the frame by loading the files 
-        
+        # create the frame by loading the files
         multiview_frame = {f"{j+1}": load_json(multiview_frames[camera_ids[j]][i]) for j in range(len(camera_ids))}
-        
-        
+
         #futures.append(pool.submit(export_frame_from_dic,cameras,multiview_frame,i+1,skip_cameras,output_fullpath,threshold,nformat,debug_files))
-        export_frame_from_dic(cameras,multiview_frame,i+1,skip_cameras,output_fullpath,threshold,nformat,debug_files)
-    
+        frame_min_mse, frame_max_mse = export_frame_from_dic(cameras,multiview_frame,i+1,skip_cameras,output_fullpath,threshold,nformat,debug_files)
+        global_min_mse = min(global_min_mse,frame_min_mse)
+        global_max_mse = max(global_max_mse,frame_max_mse)
+        if(frame_min_mse < 1e10):
+            global_mean_min_mse += frame_min_mse
+
+    print(f"Finished processing {end_frame - start_frame} frames.")
+    print(f"global_min_mse: {global_min_mse}")
+    print(f"global_max_mse: {global_max_mse}")
+    print(f"global_mean_min_mse: {global_mean_min_mse/(end_frame - start_frame)}")
+
     #wait(futures)
-    
-    
 
 if __name__ == "__main__":
     main()

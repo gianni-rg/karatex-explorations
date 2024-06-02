@@ -39,24 +39,31 @@ KarateX - Explorations to revolutionize martial arts with AI
    `karate_multiview_frames_exporter.py`
 
 3. Debug tool to see 2D poses and annotate poses to keep for each camera (`display_tracking_info` = True to view person tracking)
-   `karate_pose_visualizer_debugger.py` 
+   `karate_pose_visualizer_debugger.py`
 
 4. merge + clean_up_poses
+   `karate_clean_up_poses.py`
+
+4b. Debug tool to see 2D poses and verify cleaned tracks
+   `karate_pose_visualizer_debugger.py`
 
 5. karate_smooth_2d_annotation
-   `karate_smooth_2d_annotation.py` 
+   `karate_smooth_2d_annotation.py`
 
 -- A potential addition is to smooth/mean each pose combination during the 3D reconstruction
 
-6. Perform 3D reconstruction
+6. Perform 3D reconstruction with smoothed 2d
    `karate_3d_reconstruction_final.py`
+
+6b. Debug tool to see 2D poses and 3D poses and verify
+   `karate_pose_visualizer_debugger.py`
 
 7. Apply smoothing to 3D reconstruction and add missing/empty frames
     !Consider only the order of people in each frame -- TODO: use trackId, CURRENTLY NOT AN ISSUE, AS AN ASSUMPTION WE HAVE 1 PERSON PER CAMERA
    `karate_smoothing_interpolation_3d_points.py`
 
-8. Debug tool to see 2D poses, intermediate results and final 3D results.
-   `karate_pose_visualizer_debugger.py` 
+8. Debug tool to see 2D,3D poses, intermediate results and final 3D results.
+   `karate_pose_visualizer_debugger.py`
 
 ## Contribution
 

@@ -1,0 +1,18 @@
+cd D:\Personal\karatex-explorations
+.\.venv\Scripts\activate
+$input_path = "D:\\Datasets\\karate\\Test"
+$clip_name = "20230714_195432"
+$smooth_threshold_2d = 30.0
+$threshold_3d_rec = 150
+python src\\karate_camera_pose_calculator.py --input_path $input_path --clip_name $clip_name
+python src\\karate_multiview_frames_exporter.py --input_path $input_path --clip_name $clip_name
+python src\\karate_pose_visualizer_debugger.py --input_path $input_path --clip_name $clip_name --input_2d_poses "" --skip_frame_step 5
+python src\\karate_clean_up_poses.py --input_path $input_path --clip_name $clip_name
+python src\\karate_pose_visualizer_debugger.py --input_path $input_path --clip_name $clip_name --input_2d_poses "cleaned"
+python src\\karate_smooth_2d_annotation.py --input_path $input_path --clip_name $clip_name --output_folder "cleaned_smoothed_$smooth_threshold_2d" --threshold $smooth_threshold_2d
+python src\\karate_3d_reconstruction_final.py --input_path $input_path --clip_name $clip_name --annotation_folder "cleaned_smoothed_$smooth_threshold_2d" --threshold $threshold_3d_rec --output_folder "output_3d_$threshold_3d_rec"
+Write-Host Set config.json for Unity to: $input_path.replace("\\","/")/$clip_name/output_3d_$($threshold_3d_rec)
+python src\\karate_pose_visualizer_debugger.py --input_path $input_path --clip_name $clip_name --input_2d_poses "cleaned_smoothed_$smooth_threshold_2d" --input_3d_poses "output_3d_$threshold_3d_rec"
+python src\\karate_smoothing_interpolation_3d_points.py --input_path $input_path --clip_name $clip_name --input_folder "output_3d_$threshold_3d_rec" --output_folder "output_3d_$($threshold_3d_rec)_smooth3d"
+python src\\karate_pose_visualizer_debugger.py --input_path $input_path --clip_name $clip_name --input_2d_poses "cleaned_smoothed_$smooth_threshold_2d" --input_3d_poses "output_3d_$($threshold_3d_rec)_smooth3d"
+Write-Host Set config.json for Unity to: $input_path.replace("\\","/")/$clip_name/output_3d_$($threshold_3d_rec)_smooth3d

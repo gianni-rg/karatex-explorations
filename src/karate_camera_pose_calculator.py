@@ -5,13 +5,13 @@ import json
 import click
 from karate_utilities import Camera
 
-# data taken from for old kinect https://github.com/knexfan0011/Kinect-V2-Camera-Calibration-Data
-# https://littlewing.hatenablog.com/entry/2019/08/25/183629
-Camera_matrix=[ 1071.062, 0, 973.732,
-                0, 1074.326, 491.147,
-                0, 0, 1]
+# # data taken from for old kinect https://github.com/knexfan0011/Kinect-V2-Camera-Calibration-Data
+# # https://littlewing.hatenablog.com/entry/2019/08/25/183629
+# Camera_matrix=[ 1071.062, 0, 973.732,
+#                 0, 1074.326, 491.147,
+#                 0, 0, 1]
 
-Distortion = [0.068412, -0.057890, -0.010089, 0.005318] #+/- [0.004484, 0.012715, 0.000938, 0.001083]
+# Distortion = [0.068412, -0.057890, -0.010089, 0.005318] #+/- [0.004484, 0.012715, 0.000938, 0.001083]
 
 #Additional Error ranges:
 #f_x +/- 2.433
@@ -19,57 +19,56 @@ Distortion = [0.068412, -0.057890, -0.010089, 0.005318] #+/- [0.004484, 0.012715
 #c_x +/- 3.342
 #c_y +/- 3.105
 
-# ===== Device 0: {DeviceID:XXXXXX} =====
-principal_point_c2 = (968.939209,558.608459) # (x,y)
-focal_length_c2 = (899.693420,899.449646)
-# radial_distortion_coefficients 
-k1 = 0.678679
-k2 = -2.779486
-k3 = 1.569404
-k4 = 0.554819
-k5 = -2.610379
-k6 = 1.500811
-center_of_distortion = ( 0.000000,0.000000)
-p1 = tangential_distortion_coefficient_x = 0.000476
-p2 = tangential_distortion_coefficient_y = 0.000104
-metric_radius = 0.000000
+# # ===== Device 0: {DeviceID:XXXXXX} =====
+# principal_point_c2 = (968.939209,558.608459) # (x,y)
+# focal_length_c2 = (899.693420,899.449646)
+# # radial_distortion_coefficients
+# k1 = 0.678679
+# k2 = -2.779486
+# k3 = 1.569404
+# k4 = 0.554819
+# k5 = -2.610379
+# k6 = 1.500811
+# center_of_distortion = ( 0.000000,0.000000)
+# p1 = tangential_distortion_coefficient_x = 0.000476
+# p2 = tangential_distortion_coefficient_y = 0.000104
+# metric_radius = 0.000000
 
-# https://github.com/microsoft/Azure-Kinect-Sensor-SDK/blob/develop/examples/opencv_compatibility/main.cpp
-dist_coeff_c2 = [k1,k2,p1,p2,k3,k4,k5,k6]
+# # https://github.com/microsoft/Azure-Kinect-Sensor-SDK/blob/develop/examples/opencv_compatibility/main.cpp
+# dist_coeff_c2 = [k1,k2,p1,p2,k3,k4,k5,k6]
 
-# ===== Device 1: {DeviceID:XXXXXX} ===== Gianni
-resolution = (1920,1080)
-principal_point = (961.302551,554.008667) #cx,cy
-focal_length = (909.712341,909.587952) #f_x,f_y
-#radial distortion coefficients:
-k1 = 0.692706
-k2 = -2.979956
-k3 = 1.730745
-k4 = 0.569762
-k5 = -2.802186
-k6 = 1.655197
-p1 = 0.000765
-p2 = 0.000095
-center_of_distortion = (0.000000,0.000000)
-metric_radius = 0.000000
+# # ===== Device 1: {DeviceID:XXXXXX} ===== Gianni
+# resolution = (1920,1080)
+# principal_point = (961.302551,554.008667) #cx,cy
+# focal_length = (909.712341,909.587952) #f_x,f_y
+# #radial distortion coefficients:
+# k1 = 0.692706
+# k2 = -2.979956
+# k3 = 1.730745
+# k4 = 0.569762
+# k5 = -2.802186
+# k6 = 1.655197
+# p1 = 0.000765
+# p2 = 0.000095
+# center_of_distortion = (0.000000,0.000000)
+# metric_radius = 0.000000
 
+# dist_coeff = [k1,k2,p1,p2,k3,k4,k5,k6]
 
-dist_coeff = [k1,k2,p1,p2,k3,k4,k5,k6]
-def find_pose_from_img_points(img_points):
-    pass
+# def find_pose_from_img_points(img_points):
+#     pass
 
 def factory_camera_from_k4a(resolution,principal_point,focal_length,dist_params ) -> Camera :
     K = np.array([ [focal_length[0],0,principal_point[0]],
                    [0,focal_length[1],principal_point[1]],
                    [0,0,1]],dtype = np.float64)
     R = np.eye(3,dtype=np.float64)
-    r_vec = np.array([0,0,0],dtype=np.float64) 
+    r_vec = np.array([0,0,0],dtype=np.float64)
     t_vec = np.array([0,0,0],dtype=np.float64)
     pos = np.array([0,0,0],dtype=np.float64)
     dist_coeff = np.array(dist_params,dtype=np.float64)
     camera = Camera(K=K,Rot=R,tvec=t_vec,rvec=r_vec,pos=pos,dist_coeffs=dist_coeff)
     return camera
-
 
 xyz_gen = []
 num_points = 32
@@ -77,68 +76,51 @@ step = 0.05
 points = []
 cameras_out = {}
 
-for i in range(num_points):
-    for j in range(num_points):
-        points.append([i*step,j*step,0])
-        points.append([i*step,-j*step,0])
-        points.append([-i*step,-j*step,0])
-        points.append([-i*step,j*step,0])
-           
-        points.append([i*step,j*step,2*step])
-        points.append([i*step,-j*step,2*step])
-        points.append([-i*step,-j*step,2*step])
-        points.append([-i*step,j*step,2*step])
-        
-        points.append([i*step,j*step,-2*step])
-        points.append([i*step,-j*step,-2*step])
-        points.append([-i*step,-j*step,-2*step])
-        points.append([-i*step,j*step,-2*step])
-        
-points_1 = np.array(points,dtype=np.float64)
+# for i in range(num_points):
+#     for j in range(num_points):
+#         points.append([i*step,j*step,0])
+#         points.append([i*step,-j*step,0])
+#         points.append([-i*step,-j*step,0])
+#         points.append([-i*step,j*step,0])
+
+#         points.append([i*step,j*step,2*step])
+#         points.append([i*step,-j*step,2*step])
+#         points.append([-i*step,-j*step,2*step])
+#         points.append([-i*step,j*step,2*step])
+
+#         points.append([i*step,j*step,-2*step])
+#         points.append([i*step,-j*step,-2*step])
+#         points.append([-i*step,-j*step,-2*step])
+#         points.append([-i*step,j*step,-2*step])
+
+# points_1 = np.array(points,dtype=np.float64)
 
 
-points  = []
-for i in range(num_points):
-    for j in range(num_points):
-        points.append([i*step,0,j*step])
-        points.append([i*step,0,-j*step])
-        points.append([-i*step,0,-j*step])
-        points.append([-i*step,0,j*step])
-           
-        for k in range(1,5):
-            val = k*2
-            points.append([i*step,val*step,j*step])
-            points.append([i*step,val*step,-j*step])
-            points.append([-i*step,val*step,-j*step])
-            points.append([-i*step,val*step,j*step])
-        
-            points.append([i*step,-val*step,j*step])
-            points.append([i*step,-val*step,-j*step])
-            points.append([-i*step,-val*step,-j*step])
-            points.append([-i*step,-val*step,j*step])
- 
+# points  = []
+# for i in range(num_points):
+#     for j in range(num_points):
+#         points.append([i*step,0,j*step])
+#         points.append([i*step,0,-j*step])
+#         points.append([-i*step,0,-j*step])
+#         points.append([-i*step,0,j*step])
+
+#         for k in range(1,5):
+#             val = k*2
+#             points.append([i*step,val*step,j*step])
+#             points.append([i*step,val*step,-j*step])
+#             points.append([-i*step,val*step,-j*step])
+#             points.append([-i*step,val*step,j*step])
+
+#             points.append([i*step,-val*step,j*step])
+#             points.append([i*step,-val*step,-j*step])
+#             points.append([-i*step,-val*step,-j*step])
+#             points.append([-i*step,-val*step,j*step])
+
 points = []
+floor = 0.223
 for i in range(num_points):
     for j in range(num_points):
-        points.append([i*step,.223,j*step])
-        #points.append([i*step,0,-j*step])
-        #points.append([-i*step,0,-j*step])
-        #points.append([-i*step,0,j*step])
-           
-        for k in range(1,5):
-            val = k*2
-            #points.append([i*step,val*step,j*step])
-            #points.append([i*step,val*step,-j*step])
-            #points.append([-i*step,val*step,-j*step])
-            #points.append([-i*step,val*step,j*step])
-        
-            #points.append([i*step,-val*step,j*step])
-            #points.append([i*step,-val*step,-j*step])
-            #points.append([-i*step,-val*step,-j*step])
-            #points.append([-i*step,-val*step,j*step])
-
-
-#points = points_1
+        points.append([i*step,floor,j*step])
 
 cameras_out = {}
 
@@ -152,10 +134,6 @@ cameras_out = {}
 @click.option('--extra_points',type=click.FLOAT,default=None)
 def main(input_path,calibration_file,clip_name,output_folder,output_file_name,display_results,extra_points):
     camera_calib_xyz_uvs_file = os.path.join(input_path,clip_name,calibration_file)
-
-   # points_new = np.array(points,dtype=np.float64)
-   # if extra_points != None:
-   #     points = np.array(extra_points)
 
     with open(camera_calib_xyz_uvs_file,"r") as f:
         camera_calib_xyz_uvs = json.load(f)
@@ -187,7 +165,6 @@ def main(input_path,calibration_file,clip_name,output_folder,output_file_name,di
 
         circle_size = 2
 
-
         # reproject points on img1
         if display_results:
             filename = camera_params['reference_img']
@@ -210,13 +187,12 @@ def main(input_path,calibration_file,clip_name,output_folder,output_file_name,di
             cv2.imshow('frame', cv2.resize(img, (1280, 720)))
             cv2.waitKey(0)
             cv2.imwrite(os.path.join(input_path,clip_name,output_folder,"reproj_"+filename),img)
-            
+
     # serialize results
-    output_file = os.path.join(input_path,clip_name,output_folder,output_file_name) 
-    
+    output_file = os.path.join(input_path,clip_name,output_folder,output_file_name)
+
     with open(output_file, 'w') as f:
-        json.dump(camera_dictionary, f, indent=4)        
-    
+        json.dump(camera_dictionary, f, indent=4)
 
 if __name__ == "__main__":
     main()

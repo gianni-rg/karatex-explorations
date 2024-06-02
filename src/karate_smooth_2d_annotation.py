@@ -94,15 +94,38 @@ def detect_and_correct_errors(frames, threshold=1.0):
     corrected_frames = frames.copy()
     num_frames = frames.shape[0]
     num_points = frames.shape[1]
+    min_prev_distance = 1e10
+    max_prev_distance = 1e-10
+    mean_prev_distance = 0
+    min_next_distance = 1e10
+    max_next_distance = 1e-10
+    mean_next_distance = 0
+    total_points_count = 0
+    outliers_count = 0
     for i in range(1, num_frames - 1):
         prev_frame = frames[i - 1]
         current_frame = frames[i]
         next_frame = frames[i + 1]
         for point in range(num_points):
-            if (np.linalg.norm(current_frame[point] - prev_frame[point]) > threshold and
-                np.linalg.norm(current_frame[point] - next_frame[point]) > threshold):
+            prev_distance = np.linalg.norm(current_frame[point] - prev_frame[point])
+            next_distance = np.linalg.norm(current_frame[point] - next_frame[point])
+
+            total_points_count += 1
+            min_prev_distance = min(min_prev_distance, prev_distance)
+            mean_prev_distance += prev_distance
+            max_prev_distance = max(max_prev_distance, prev_distance)
+            min_next_distance = min(min_next_distance, next_distance)
+            mean_next_distance += next_distance
+            max_next_distance = max(max_next_distance, next_distance)
+
+            if (prev_distance > threshold and
+                next_distance > threshold):
+                outliers_count += 1
+                #print(f"Dist current-neighbor (prev: {prev_distance}, next: {next_distance}) is above threshold: {threshold}")
                 corrected_frames[i][point] = (prev_frame[point] + next_frame[point]) / 2  # Correction by averaging neighboring frames
-    return corrected_frames
+
+    print(f"Corrected {outliers_count} outlier keypoints above threshold: {threshold}")
+    return corrected_frames, outliers_count, min_prev_distance, max_prev_distance, min_next_distance, max_next_distance, mean_prev_distance/total_points_count, mean_next_distance/total_points_count
 
 def smooth_frames(frames, window_length=5, polyorder=2):
     """
@@ -157,18 +180,19 @@ def process_annotation(anno: dict) -> (dict,dict):
 @click.option('--window_length', type=click.INT, required=True, default=5, help='frame to start from')
 def main(input_path,clip_name,output_folder,calibration_file,annotation_folder,threshold,window_size,window_length):
 
-   camera_calib = os.path.join(input_path,clip_name,calibration_file)
+    camera_calib = os.path.join(input_path,clip_name,calibration_file)
 
-   with open(camera_calib,'r') as f:
-        cameras_json = json.load(f)
+    with open(camera_calib,'r') as f:
+         cameras_json = json.load(f)
 
-   frames_per_camera = {}
-   for camera_name,_ in cameras_json.items():
-       folder_frames = os.path.join(input_path,clip_name,annotation_folder,camera_name)
-       files = glob.glob(folder_frames+"/*.json")
-       poses_dic_frames = {}
-       original_frames = []
-       for i, file in enumerate(files):
+    frames_per_camera = {}
+    for camera_name,_ in cameras_json.items():
+        print(f"Processing frames for camera {camera_name}")
+        folder_frames = os.path.join(input_path,clip_name,annotation_folder,camera_name)
+        files = glob.glob(folder_frames+"/*.json")
+        poses_dic_frames = {}
+        original_frames = []
+        for i, file in enumerate(files):
            frame = load_json(file)
            frame_index = frame['frame_index']
            original_frames.append(frame)
@@ -186,37 +210,54 @@ def main(input_path,clip_name,output_folder,calibration_file,annotation_folder,t
 
                poses_dic_frames[track_id].append(points_array)
 
-       # Fill in missing frames with None (at the end of the frames list)
-       for track_id in poses_dic_frames.keys():
-           if len(poses_dic_frames[track_id]) < len(original_frames):
-               diff = len(original_frames) - len(poses_dic_frames[track_id])
-               poses_dic_frames[track_id] += [None]*diff
+        # Fill in missing frames with None (at the end of the frames list)
+        for track_id, frames in poses_dic_frames.items():
+            if len(frames) < len(files):
+              diff = len(files) - len(frames)
+              poses_dic_frames[track_id] += [None]*diff
+        frames_per_camera[camera_name] = poses_dic_frames
 
-       frames_per_camera[camera_name] = poses_dic_frames
-
-
-       # apply smoothing to the frames for each track_id
-       for track_id,frames in poses_dic_frames.items():
+        # Apply smoothing to the frames for each track_id
+        global_min_prev_distance = 1e10
+        global_max_prev_distance = 1e-10
+        global_mean_prev_distance = 0
+        global_min_next_distance = 1e10
+        global_max_next_distance = 1e-10
+        global_mean_next_distance = 0
+        for track_id, frames in poses_dic_frames.items():
               frames = replace_none_with_nans(frames)
               frames = interpolate_using_window(frames, window_size=window_size, method='linear')
-              frames = detect_and_correct_errors(frames, threshold=threshold)
+              frames, outliers_count, min_prev_distance, max_prev_distance, min_next_distance, max_next_distance, mean_prev, mean_next = detect_and_correct_errors(frames, threshold=threshold)
+              global_min_prev_distance = min(global_min_prev_distance, min_prev_distance)
+              global_max_prev_distance = max(global_max_prev_distance, max_prev_distance)
+              global_min_next_distance = min(global_min_next_distance, min_next_distance)
+              global_max_next_distance = max(global_max_next_distance, max_next_distance)
+              global_mean_prev_distance += mean_prev
+              global_mean_next_distance += mean_next
               frames = smooth_frames(frames, window_length=window_length, polyorder=2)
               poses_dic_frames[track_id] = frames
 
-       # save the smoothed frames
-       for frame in original_frames:
-           frame_index = frame['frame_index']
-           for pose in frame['person_data']:
-               track_id = pose['track_id']
-               del pose['keypoints']
-               pose['keypoints'] = poses_dic_frames[track_id][frame_index-1].tolist()
+        print(f"Global min prev distance: {global_min_prev_distance}")
+        print(f"Global max prev distance: {global_max_prev_distance}")
+        print(f"Global min next distance: {global_min_next_distance}")
+        print(f"Global max next distance: {global_max_next_distance}")
+        print(f"Global mean prev distance: {global_mean_prev_distance/len(poses_dic_frames)}")
+        print(f"Global mean next distance: {global_mean_next_distance/len(poses_dic_frames)}")
 
-           #save the smoothed frames to the output folder
-           output_folder_name = os.path.join(input_path,clip_name,output_folder,camera_name)
-           os.makedirs(output_folder_name, exist_ok=True)
-           output_file_name = f"{frame_index:06d}.json"
-           fullpath_outfile = os.path.join(output_folder_name,output_file_name)
-           with open(fullpath_outfile, 'w') as f:
+        # save the smoothed frames
+        for frame in original_frames:
+            frame_index = frame['frame_index']
+            for pose in frame['person_data']:
+                track_id = pose['track_id']
+                del pose['keypoints']
+                pose['keypoints'] = poses_dic_frames[track_id][frame_index-1].tolist()
+
+            # Save the smoothed frames to the output folder
+            output_folder_name = os.path.join(input_path,clip_name,output_folder,camera_name)
+            os.makedirs(output_folder_name, exist_ok=True)
+            output_file_name = f"{frame_index:06d}.json"
+            fullpath_outfile = os.path.join(output_folder_name,output_file_name)
+            with open(fullpath_outfile, 'w') as f:
                 json.dump(frame, f)
 
 if __name__ == "__main__":
