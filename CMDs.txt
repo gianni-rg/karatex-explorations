@@ -16,3 +16,18 @@ python src\\karate_pose_visualizer_debugger.py --input_path $input_path --clip_n
 python src\\karate_smoothing_interpolation_3d_points.py --input_path $input_path --clip_name $clip_name --input_folder "output_3d_$threshold_3d_rec" --output_folder "output_3d_$($threshold_3d_rec)_smooth3d"
 python src\\karate_pose_visualizer_debugger.py --input_path $input_path --clip_name $clip_name --input_2d_poses "cleaned_smoothed_$smooth_threshold_2d" --input_3d_poses "output_3d_$($threshold_3d_rec)_smooth3d"
 Write-Host Set config.json for Unity to: $input_path.replace("\\","/")/$clip_name/output_3d_$($threshold_3d_rec)_smooth3d
+
+# COMPARISON
+cd D:\Personal\karatex-explorations
+.\.venv\Scripts\activate
+$input_path = "D:\\Datasets\\karate\\Test"
+$reference_clip_name = "20230714_193412" # Bassai Dai
+$reference_annotation_folder = "cleaned_smoothed_4"
+
+$reference_clip_name = "20230714_193559" # Kanku Dai
+$reference_annotation_folder = "cleaned_smoothed_6"
+
+$input_clip_name = "20230714_193921" # Kanku Dai
+$input_annotation_folder = "cleaned_smoothed_8"
+
+python src\\karate_compare_2d.py --input_path $input_path --reference_clip_name $reference_clip_name --reference_annotation_folder $reference_annotation_folder --input_clip_name $input_clip_name --input_annotation_folder $input_annotation_folder
