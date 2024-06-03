@@ -17,7 +17,7 @@ python src\\karate_smoothing_interpolation_3d_points.py --input_path $input_path
 python src\\karate_pose_visualizer_debugger.py --input_path $input_path --clip_name $clip_name --input_2d_poses "cleaned_smoothed_$smooth_threshold_2d" --input_3d_poses "output_3d_$($threshold_3d_rec)_smooth3d"
 Write-Host Set config.json for Unity to: $input_path.replace("\\","/")/$clip_name/output_3d_$($threshold_3d_rec)_smooth3d
 
-# COMPARISON
+# COMPARISON 2D
 cd D:\Personal\karatex-explorations
 .\.venv\Scripts\activate
 $input_path = "D:\\Datasets\\karate\\Test"
@@ -27,7 +27,47 @@ $reference_annotation_folder = "cleaned_smoothed_4"
 $reference_clip_name = "20230714_193559" # Kanku Dai
 $reference_annotation_folder = "cleaned_smoothed_6"
 
+$reference_clip_name = "20230714_194103" # Sochin
+$reference_annotation_folder = "cleaned_smoothed_5"
+
+$reference_clip_name = "20230714_194243" # Sochin -- NO K4A_Tino available
+$reference_annotation_folder = "cleaned_smoothed_5"
+
+$reference_clip_name = "20230714_194519" # Enpi -- NO K4A_Tino available
+$reference_annotation_folder = "cleaned_smoothed_30"
+
+$reference_clip_name = "20230714_195553" # Gojushiho Sho
+$reference_annotation_folder = "cleaned_smoothed_5"
+
+####
+
 $input_clip_name = "20230714_193921" # Kanku Dai
 $input_annotation_folder = "cleaned_smoothed_8"
+
+$input_clip_name = "20230714_194103" # Sochin
+$input_annotation_folder = "cleaned_smoothed_5"
+
+$input_clip_name = "20230714_194243" # Sochin -- NO K4A_Tino available
+$input_annotation_folder = "cleaned_smoothed_5"
+
+$input_clip_name = "20230714_194519" # Enpi -- NO K4A_Tino available
+$input_annotation_folder = "cleaned_smoothed_30"
+
+$input_clip_name = "20230714_194852" # Enpi -- NO K4A_Tino available
+$input_annotation_folder = "cleaned_smoothed_25"
+
+$input_clip_name = "20230714_200355" # Sochin
+$input_annotation_folder = "cleaned_smoothed_10"
+
+$input_clip_name = "20230714_195553" # Gojushiho Sho
+$input_annotation_folder = "cleaned_smoothed_5"
+
+$input_clip_name = "20230714_195835" # Gojushiho Sho
+$input_annotation_folder = "cleaned_smoothed_5"
+
+$input_clip_name = "20230714_200057" # Gojushiho Sho
+$input_annotation_folder = "cleaned_smoothed_7"
+
+
 
 python src\\karate_compare_2d.py --input_path $input_path --reference_clip_name $reference_clip_name --reference_annotation_folder $reference_annotation_folder --input_clip_name $input_clip_name --input_annotation_folder $input_annotation_folder

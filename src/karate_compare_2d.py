@@ -26,7 +26,7 @@ class Score(object):
         input_points = input_points / np.linalg.norm(input_points)
         reference_points = reference_points.reshape(self.coordinates * num_reference_points)
         reference_points = reference_points / np.linalg.norm(reference_points)
-        return self.percentage_score(dtw.distance(reference_points, input_points))
+        return self.percentage_score(dtw.distance_fast(reference_points, input_points))
 
     def normalize(self, input_test):
         for keypoint in range(0, self.skeleton_keypoints):
@@ -60,11 +60,11 @@ def load_poses_for_clip(input_path, clip_name, annotation_folder, calibration_fi
             frame_index = frame["frame_index"]
 
             if len(frame["person_data"]) == 0:
-                print(f"[{clip_name}] Empty frame {frame_index} in {camera_name}")
+                #print(f"[{clip_name}] Empty frame {frame_index} in {camera_name}")
                 continue
 
             for pose in frame["person_data"]:
-                points_array = np.array(pose["keypoints"], dtype=np.float32) #.reshape(-1, 2)
+                points_array = np.array(pose["keypoints"], dtype=np.double) # required for dtw (fast version), otherwise use np.float32
                 track_id = pose["track_id"]
                 if track_id not in poses_dic_frames:
                     poses_dic_frames[track_id] = []
@@ -93,7 +93,7 @@ def main(input_path, input_clip_name, reference_clip_name, calibration_file, inp
     ###############
 
     # Check that the number of cameras is the same
-    assert len(reference_poses) == len(input_poses), "Reference-Input cameras count mismatch"
+    #assert len(reference_poses) == len(input_poses), "Reference-Input cameras count mismatch"
 
     # Check that the number of people is the same
     # IT DOES NOT ALWAYS WORK: the camera names may not be the same in the two clips
@@ -112,16 +112,23 @@ def main(input_path, input_clip_name, reference_clip_name, calibration_file, inp
     clip_scorer = Score(skeleton_keypoints=23, coordinates=2)
     scores = {}
     for camera_name in reference_poses.keys():
-        print(f"Comparing {camera_name}...")
         # Gets the first available track id in each camera
         reference_track_id = list(reference_poses[camera_name].keys())[0]
         input_track_id = list(input_poses[camera_name].keys())[0]
         reference_frames_count = len(reference_poses[camera_name][reference_track_id])
         input_frames_count = len(input_poses[camera_name][input_track_id])
+
         # FOR TESTING PURPOSES
-        reference_frames_count = 400
-        input_frames_count = 400
-        final_score, score_list = clip_scorer.compare(np.asarray(input_poses[camera_name][input_track_id][:input_frames_count]), np.asarray(reference_poses[camera_name][reference_track_id][:reference_frames_count]), input_frames_count, reference_frames_count)
+        #reference_frames_count = 300 # about 10s
+        #input_frames_count = 300
+
+        print(f"Comparing {camera_name} for {input_frames_count} frames...")
+        final_score, score_list = clip_scorer.compare(
+            np.asarray(input_poses[camera_name][input_track_id][:input_frames_count]),
+            np.asarray(reference_poses[camera_name][reference_track_id][:reference_frames_count]),
+            input_frames_count,
+            reference_frames_count)
+
         scores[camera_name] = {
             'overall_score': final_score,
             'scores_list': score_list
