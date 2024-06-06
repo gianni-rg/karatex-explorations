@@ -33,6 +33,25 @@ def load_2d_poses_for_clip(input_path, clip_name, annotation_folder, calibration
 
             for pose in frame["person_data"]:
                 points_array = np.array(pose["keypoints"], dtype=np.double)  # required for dtw (fast version), otherwise use np.float32
+
+                # https://github.com/jflazaro/Kinect-SDK-Dynamic-Time-Warping-DTW-Gesture-Recognition-SDK1.8/blob/master/Skeleton2DDataExtract.cs
+			    # "5": "left_shoulder",
+			    # "6": "right_shoulder",
+                shoulderLeft = points_array[5, :2]
+                shoulderRight = points_array[6, :2]
+                shoulderCenter = (shoulderLeft + shoulderRight) / 2
+
+                # Centre the data
+                points_array[:, :2] -= shoulderCenter
+
+                # # Normalization of the coordinates
+                # double shoulderDist = Math.Sqrt(Math.Pow((shoulderLeft.X - shoulderRight.X), 2) + Math.Pow((shoulderLeft.Y - shoulderRight.Y), 2));
+                # for (int i = 0; i < 6; i++)
+                # {
+                #     p[i].X /= shoulderDist;
+                #     p[i].Y /= shoulderDist;
+                # }
+
                 track_id = pose["track_id"]
                 if track_id not in poses_dic_frames:
                     poses_dic_frames[track_id] = []
