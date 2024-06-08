@@ -73,17 +73,9 @@ def get_frames_from_window(window_idx, offset, total_frames, compare_window_size
 
     return frame_start, frame_end, frames_count
 
-@click.command()
-@click.option("--input_path", type=click.STRING, required=True, default="D:\\Datasets\\karate\\Test", help="annotations root folder")
-@click.option("--input_clip_name", type=click.STRING, required=True, default="20230714_193412", help="name of the clip to load as input")
-@click.option("--reference_clip_name", type=click.STRING, required=True, default="20230714_193412", help="name of the clip to load as reference")
-@click.option("--calibration_file", type=click.STRING, required=True, default="camera_data/camera.json", help="JSON calibration file")
-@click.option("--input_annotation_folder", type=click.STRING, required=True, default="output_3d_150_smooth3d", help="relative path folder to load the input annotations")
-@click.option("--reference_annotation_folder", type=click.STRING, required=True, default="output_3d_150_smooth3d", help="relative path folder to load the reference annotations")
-@click.option("--output_folder", type=click.STRING, required=True, default="comparisons", help="relative path folder for the output")
-def main(input_path, input_clip_name, reference_clip_name, calibration_file, input_annotation_folder, reference_annotation_folder, output_folder):
+def compare_2_clips(input_path, input_clip_name, reference_clip_name, input_annotation_folder, reference_annotation_folder, output_folder, compare_window_size = 60, compare_window_stride = 15, input_offset=0, reference_offset=0):
 
-    # Load reference poses
+     # Load reference poses
     reference_poses = load_3d_poses_for_clip(input_path, reference_clip_name, reference_annotation_folder, center=True, normalize=True)
 
     # Load poses to compare against the reference
@@ -103,11 +95,7 @@ def main(input_path, input_clip_name, reference_clip_name, calibration_file, inp
     input_frames_count = len(input_poses)
     input_frames_count = min(input_frames_count, reference_frames_count)
 
-    compare_window_size = 60 * 1   # fps * seconds
-    compare_window_stride = 15 * 1 # fps * seconds (1 second stride, no overlap) -> if you want to overlap, use a value smaller than the window size
-    input_offset = 90 # frames
-    reference_offset = 0 # frames
-
+    # Windowed comparison
     scores = []
     for window_idx in range(0, input_frames_count // compare_window_stride):
         input_frame_start, input_frame_end, input_frames_count = get_frames_from_window(window_idx, input_offset, len(input_poses), compare_window_size, compare_window_stride)
@@ -122,41 +110,89 @@ def main(input_path, input_clip_name, reference_clip_name, calibration_file, inp
             reference_frames_count,
         )
         print(f"Similarity *{reference_clip_name}* <-> {input_clip_name}: {final_score:.2f}%")
-        scores.append(final_score)
+        scores.append(max(0, final_score))
 
-    # print(f"Comparing poses for {input_frames_count} frames")
-    # final_score, score_list = clip_scorer.compare(
-    #     np.asarray(input_poses[input_frame_start:input_frame_end]),
-    #     np.asarray(reference_poses[reference_frame_start:reference_frame_end]),
-    #     input_frames_count,
-    #     reference_frames_count,
-    # )
+    # Not windowed
+    reference_frames_count = len(reference_poses)
+    input_frames_count = len(input_poses)
+    input_frames_count = min(input_frames_count, reference_frames_count)
+    print(f"Comparing poses for {input_frames_count} frames (not windowed)")
+    full_clip_final_score, full_clip_score_list = clip_scorer.compare(
+        np.asarray(input_poses[0:input_frames_count]),
+        np.asarray(reference_poses[0:input_frames_count]),
+        input_frames_count,
+        reference_frames_count,
+    )
 
-    # scores = {"overall_score": final_score, "scores_list": score_list}
+    comparison_results = {
+        "reference_clip_name": reference_clip_name,
+        "input_clip_name": input_clip_name,
+        "input_offset": input_offset,
+        "reference_offset": reference_offset,
+        "compare_window_size": compare_window_size,
+        "compare_window_stride": compare_window_stride,
+        "windowed_overall_similarity_score": np.mean(scores),
+        "window_scores_list": scores,
+        "overall_score": full_clip_final_score,
+        "overall_score_list": full_clip_score_list,
+    }
 
-    # print(f"Similarity *{reference_clip_name}* <-> {input_clip_name}: {final_score:.2f}%")
+    print(f"Similarity *{reference_clip_name}* <-> {input_clip_name}: {final_score:.2f}%")
 
-    # TODO: Save the result to the output folder
-    # output_folder_name = os.path.join(input_path, input_clip_name, output_folder)
-    # os.makedirs(output_folder_name, exist_ok=True)
-    # output_file_name = f"comparison_2d.json"
-    # fullpath_outfile = os.path.join(output_folder_name, output_file_name)
-    # with open(fullpath_outfile, "w") as f:
-    #     json.dump(scores, f)
+    # Save the result to the output folder
+    output_folder_name = os.path.join(input_path, output_folder)
+    os.makedirs(output_folder_name, exist_ok=True)
+    fullpath_outfile = os.path.join(output_folder_name, f"{reference_clip_name}--{input_clip_name}_comparison.json")
+    with open(fullpath_outfile, "w") as f:
+        json.dump(comparison_results, f)
 
-    # Create comparison plot
-    fig, ax = plt.subplots(1, 1)
-
-    ax.set_aspect('equal')
+    # Create comparison plot (windowed scores)
+    fig, (ax_windowed, ax_full) = plt.subplots(1, 2, figsize=(20, 10))
 
     # Set labels and title
-    ax.set_title('Comparison')
+    ax_full.set_title('Comparison (full clip)')
+    ax_full.set_ylim(0, 100)
+    # ax_full.autoscale(enable=True, axis='both', tight=True)
+    ax_full.set_xlabel('Bins (frames)')
+    ax_full.set_ylabel('Similarity (%)')
+
+    ax_windowed.set_title('Comparison (windowed)')
+    ax_windowed.set_ylim(0, 100)
+    # ax_windowed.autoscale(enable=True, axis='both', tight=True)
+    ax_windowed.set_xlabel(f'Windows ({compare_window_size} frames)')
+    ax_windowed.set_ylabel('Similarity (%)')
 
     # Plot the scores
-    ax.plot(scores, label='Scores', linestyle='-', color='b')
+    ax_windowed.plot(scores, label='Scores', linestyle='-', color='b')
+    ax_windowed.axhline(np.max(scores), color='k', linestyle='dashed', linewidth=1)
+    ax_windowed.axhline(np.mean(scores), color='k', linestyle='dashed', linewidth=1)
+    ax_full.plot(full_clip_score_list, label='Scores', linestyle='-', color='b')
+    ax_full.axhline(np.max(full_clip_score_list), color='k', linestyle='dashed', linewidth=1)
+    ax_full.axhline(np.mean(full_clip_score_list), color='k', linestyle='dashed', linewidth=1)
 
-    # Show the plot
-    plt.show()
+    # Save the plot
+    fig.savefig(os.path.join(output_folder_name, f"{reference_clip_name}--{input_clip_name}_comparison.png"))
+
+    return scores
+
+@click.command()
+@click.option("--input_path", type=click.STRING, required=True, default="D:\\Datasets\\karate\\Test", help="annotations root folder")
+@click.option("--input_clip_name", type=click.STRING, required=True, default="20230714_195835", help="name of the clip to load as input")
+@click.option("--reference_clip_name", type=click.STRING, required=True, default="20230714_195553", help="name of the clip to load as reference")
+@click.option("--input_annotation_folder", type=click.STRING, required=True, default="output_3d_150_smooth3d", help="relative path folder to load the input annotations")
+@click.option("--reference_annotation_folder", type=click.STRING, required=True, default="output_3d_250_smooth3d", help="relative path folder to load the reference annotations")
+@click.option("--output_folder", type=click.STRING, required=True, default="comparisons", help="relative path folder for the output")
+@click.option("--comparison_matrix", type=click.BOOL, required=False, default=False, help="if set, the comparison will be done for all the clips in the input folder")
+def main(input_path, input_clip_name, reference_clip_name, input_annotation_folder, reference_annotation_folder, output_folder, comparison_matrix):
+
+    if not comparison_matrix:
+        compare_2_clips(input_path, input_clip_name, reference_clip_name, input_annotation_folder, reference_annotation_folder, output_folder, compare_window_size=60, compare_window_stride=15, input_offset=0, reference_offset=90)
+    else:
+        all_clips = os.listdir(input_path)
+        for clip_index_1 in range(len(all_clips)):
+            for clip_index_2 in range(clip_index_1, len(all_clips)):
+                compare_2_clips(input_path, all_clips[clip_index_1], all_clips[clip_index_2], input_annotation_folder, reference_annotation_folder, output_folder)
+
 
 if __name__ == "__main__":
     main()
