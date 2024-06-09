@@ -1,9 +1,9 @@
 cd D:\Personal\karatex-explorations
 .\.venv\Scripts\activate
 $input_path = "D:\\Datasets\\karate\\Test"
-$clip_name = "20230714_200355"
-$smooth_threshold_2d = 10.0
-$threshold_3d_rec = 300
+$clip_name = "20230714_200057"
+$smooth_threshold_2d = 7.0
+$threshold_3d_rec = 150
 python src\\karate_camera_pose_calculator.py --input_path $input_path --clip_name $clip_name
 python src\\karate_multiview_frames_exporter.py --input_path $input_path --clip_name $clip_name
 python src\\karate_pose_visualizer_debugger.py --input_path $input_path --clip_name $clip_name --input_2d_poses "" --skip_frame_step 5
@@ -116,91 +116,65 @@ python src\\karate_compare_2d.py --input_path $input_path --reference_clip_name 
 cd D:\Personal\karatex-explorations
 .\.venv\Scripts\activate
 $input_path = "D:\\Datasets\\karate\\Test"
+$reference_annotation_folder_pattern = "output_3d_*_smooth3d"
+$input_annotation_folder_pattern = "output_3d_*_smooth3d"
 
 $reference_clip_name = "20230714_193412" # Bassai Dai
-$reference_annotation_folder = "output_3d_150_smooth3d"
 
 $reference_clip_name = "20230714_193559" # Kanku Dai
-$reference_annotation_folder = "output_3d_450_smooth3d"
 
 $reference_clip_name = "20230714_193921" # Kanku Dai ***
-$reference_annotation_folder = "output_3d_450_smooth3d"
 
 $reference_clip_name = "20230714_194103" # Sochin ***
-$reference_annotation_folder = "output_3d_300_smooth3d"
 
 $reference_clip_name = "20230714_194243" # Sochin -- NO K4A_Tino available
-$reference_annotation_folder = "output_3d_325_smooth3d"
 
 $reference_clip_name = "20230714_200355" # Sochin
-$reference_annotation_folder = "output_3d_350_smooth3d"
 
 $reference_clip_name = "20230714_194519" # Enpi -- NO K4A_Tino available
-$reference_annotation_folder = "output_3d_300_smooth3d"
 
 $reference_clip_name = "20230714_194852" # Enpi -- NO K4A_Tino available
-$reference_annotation_folder = "output_3d_400_smooth"
 
 $reference_clip_name = "20230714_195038" # Enpi ***
-$reference_annotation_folder = "output_3d_200_smooth3d"
 
 $reference_clip_name = "20230714_195553" # Gojushiho Sho ***
-$reference_annotation_folder = "output_3d_250_smooth3d"
 
 $reference_clip_name = "20230714_195835" # Gojushiho Sho
-$reference_annotation_folder = "output_3d_150_smooth3d"
 
 $reference_clip_name = "20230714_200057" # Gojushiho Sho
-$reference_annotation_folder = "output_3d_150_smooth3d"
 
 $reference_clip_name = "20230714_195221" # Chinte
-$reference_annotation_folder = "output_3d_300_smooth3d"
 
 $reference_clip_name = "20230714_195432" # Heian Sandan
-$reference_annotation_folder = "output_3d_150_smooth3d"
 
 ####
 
 $input_clip_name = "20230714_193412" # Bassai Dai
-$input_annotation_folder = "output_3d_150_smooth3d"
 
 $input_clip_name = "20230714_193559" # Kanku Dai
-$input_annotation_folder = "output_3d_450_smooth3d"
 
 $input_clip_name = "20230714_193921" # Kanku Dai ***
-$input_annotation_folder = "output_3d_450_smooth3d"
 
 $input_clip_name = "20230714_194103" # Sochin ***
-$input_annotation_folder = "output_3d_300_smooth3d"
 
 $input_clip_name = "20230714_194243" # Sochin -- NO K4A_Tino available
-$input_annotation_folder = "output_3d_325_smooth3d"
 
 $input_clip_name = "20230714_200355" # Sochin
-$input_annotation_folder = "output_3d_350_smooth3d"
 
 $input_clip_name = "20230714_194519" # Enpi -- NO K4A_Tino available
-$input_annotation_folder = "output_3d_300_smooth3d"
 
 $input_clip_name = "20230714_194852" # Enpi -- NO K4A_Tino available
-$input_annotation_folder = "output_3d_400_smooth"
 
 $input_clip_name = "20230714_195038" # Enpi ***
-$input_annotation_folder = "output_3d_200_smooth3d"
 
 $input_clip_name = "20230714_195553" # Gojushiho Sho ***
-$input_annotation_folder = "output_3d_250_smooth3d"
 
 $input_clip_name = "20230714_195835" # Gojushiho Sho
-$input_annotation_folder = "output_3d_150_smooth3d"
 
 $input_clip_name = "20230714_200057" # Gojushiho Sho
-$input_annotation_folder = "output_3d_150_smooth3d"
 
 $input_clip_name = "20230714_195221" # Chinte
-$input_annotation_folder = "output_3d_300_smooth3d"
 
 $input_clip_name = "20230714_195432" # Heian Sandan
-$input_annotation_folder = "output_3d_150_smooth3d"
 
-python src\\karate_compare_3d.py --input_path $input_path --reference_clip_name $reference_clip_name --reference_annotation_folder $reference_annotation_folder --input_clip_name $input_clip_name --input_annotation_folder $input_annotation_folder
+python src\\karate_compare_3d.py --input_path $input_path --reference_clip_name $reference_clip_name --input_clip_name $input_clip_name
