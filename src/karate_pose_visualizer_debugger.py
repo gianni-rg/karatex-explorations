@@ -21,7 +21,7 @@ def display_2d_pose(img,poses,size=3,colors=[(0,0,255),(255,0,0),(255,0,0)]):
         for uv in keypoints:
             p =np.array(uv,dtype=np.int32)
             cv2.circle(img,p,3,color,-1)
-    
+
 def display_recon_pose(img,camera,poses,size=3,color=(255,0,0)):
     for person in poses['reconstructedObjects']:
         keypoints = person['points']
@@ -32,7 +32,7 @@ def display_recon_pose(img,camera,poses,size=3,color=(255,0,0)):
             x = int(uv[0])
             y = int(uv[1])
             cv2.circle(img,(x,y),size,color,-1)
-    
+
 def display_debug_poses(img,camera,poses,threshold=150,size=3,colors=[(255,0,0),(255,255,0)]):
     i = 0
     num_colors = len(colors)
@@ -41,7 +41,7 @@ def display_debug_poses(img,camera,poses,threshold=150,size=3,colors=[(255,0,0),
             error = person[0]
             if(error > threshold):
                 continue
-            idx_color =  i % num_colors 
+            idx_color =  i % num_colors
             col = colors[idx_color]
             i +=1
             keypoints = person[1 :]
@@ -175,4 +175,4 @@ def main(input_path,clip_name,calibration_file,camera_data_path,input_2d_poses,i
 
 if __name__ == "__main__":
    main()
-    
+
